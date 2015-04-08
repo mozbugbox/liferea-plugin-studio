@@ -1,0 +1,12 @@
+[Plugin]
+Module=shades
+Loader=python
+IAge=2
+Name=Web Shades
+Version=0.1
+Description=Change Web Page Background To Darker Color
+Authors=Mozbugbox <mozbugbox@yahoo.com.au>
+Copyright=Copyright © 2014-2015 Mozbugbox <mozbugbox@yahoo.com.au>
+Website=http://lzone.de/liferea/
+Help=http://lzone.de/liferea/
+

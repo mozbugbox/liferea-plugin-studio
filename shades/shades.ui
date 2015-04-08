@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.18.3 -->
+<interface>
+  <requires lib="gtk+" version="3.12"/>
+  <object class="GtkAdjustment" id="adjustment_lightness">
+    <property name="upper">1</property>
+    <property name="value">0.5</property>
+    <property name="step_increment">0.01</property>
+    <property name="page_increment">0.10000000000000001</property>
+    <property name="page_size">0.01</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_threshold">
+    <property name="upper">1</property>
+    <property name="value">0.69999999999999996</property>
+    <property name="step_increment">0.01</property>
+    <property name="page_increment">0.10000000000000001</property>
+    <property name="page_size">0.01</property>
+  </object>
+  <object class="GtkOffscreenWindow" id="offscreenwindow_config">
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkGrid" id="grid_config">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="margin_left">4</property>
+        <property name="margin_right">4</property>
+        <property name="margin_top">4</property>
+        <property name="margin_bottom">4</property>
+        <property name="row_spacing">4</property>
+        <property name="column_spacing">4</property>
+        <child>
+          <object class="GtkLabel" id="label1">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">end</property>
+            <property name="valign">center</property>
+            <property name="margin_right">4</property>
+            <property name="hexpand">False</property>
+            <property name="vexpand">False</property>
+            <property name="xalign">1</property>
+            <property name="label" translatable="yes">_Threshold:</property>
+            <property name="use_underline">True</property>
+            <property name="mnemonic_widget">scale_threshold</property>
+            <property name="ellipsize">end</property>
+            <property name="lines">1</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label2">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">end</property>
+            <property name="valign">center</property>
+            <property name="hexpand">False</property>
+            <property name="vexpand">False</property>
+            <property name="xalign">1</property>
+            <property name="label" translatable="yes">New _Lightness:</property>
+            <property name="use_underline">True</property>
+            <property name="mnemonic_widget">scale_lightness</property>
+            <property name="ellipsize">middle</property>
+            <property name="lines">1</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label3">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">end</property>
+            <property name="valign">center</property>
+            <property name="hexpand">False</property>
+            <property name="vexpand">False</property>
+            <property name="xalign">1</property>
+            <property name="label" translatable="yes">_Use Color:</property>
+            <property name="use_underline">True</property>
+            <property name="mnemonic_widget">checkbutton_use_color</property>
+            <property name="ellipsize">middle</property>
+            <property name="lines">1</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label4">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="tooltip_text" translatable="yes">Accelerated compositing uses the GPU to render animations on pages smoothly and also allows proper rendering of 3D CSS transforms.</property>
+            <property name="halign">end</property>
+            <property name="valign">center</property>
+            <property name="hexpand">False</property>
+            <property name="vexpand">False</property>
+            <property name="xalign">1</property>
+            <property name="label" translatable="yes">_Color:</property>
+            <property name="use_underline">True</property>
+            <property name="mnemonic_widget">colorbutton_color</property>
+            <property name="ellipsize">middle</property>
+            <property name="lines">1</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="checkbutton_use_color">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="halign">start</property>
+            <property name="xalign">0</property>
+            <property name="yalign">0.50999999046325684</property>
+            <property name="draw_indicator">True</property>
+            <signal name="toggled" handler="on_checkbutton_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="top_attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_threshold">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_threshold</property>
+            <property name="restrict_to_fill_level">False</property>
+            <property name="fill_level">0</property>
+            <property name="digits">2</property>
+            <property name="value_pos">right</property>
+            <signal name="value-changed" handler="on_scale_float_value_changed" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="top_attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScale" id="scale_lightness">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hexpand">True</property>
+            <property name="adjustment">adjustment_lightness</property>
+            <property name="restrict_to_fill_level">False</property>
+            <property name="fill_level">0</property>
+            <property name="digits">2</property>
+            <property name="value_pos">right</property>
+            <signal name="value-changed" handler="on_scale_float_value_changed" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="top_attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkColorButton" id="colorbutton_color">
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="halign">start</property>
+            <property name="hexpand">False</property>
+            <property name="title" translatable="yes">Pick Color - Liferea Shades</property>
+            <property name="rgba">rgb(114,159,207)</property>
+            <signal name="color-set" handler="on_colorbutton_color_set" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="top_attach">3</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
