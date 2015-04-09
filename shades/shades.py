@@ -255,6 +255,7 @@ class ShadesPlugin (GObject.Object,
         elif status in [WebKit.LoadStatus.FINISHED, WebKit.LoadStatus.FAILED]:
             self.do_shades(wid)
             self.stop_periodic_shade(wid)
+        #print(status)
 
     def stop_periodic_shade(self, wk_view):
         """Stop the periodic shade update on a webview"""
@@ -262,11 +263,27 @@ class ShadesPlugin (GObject.Object,
             GObject.source_remove(wk_view.shades_timeout_shade_cid)
             wk_view.shades_timeout_shade_cid = -1
 
-    def start_periodic_shade(self, wk_view, timeout=3):
+    def _on_shades_timeout(self, wk_view, current_timeout):
+        """Do shades with incremental timeout intervals
+
+        Stop further update when page loading take too long
+        """
+        max_interval = 30
+
+        wk_view.shades_timeout_shade_cid = -1
+        self.do_shades(wk_view)
+
+        # increase periodic update interval
+        if current_timeout < max_interval:
+            current_timeout *= 2
+            self.start_periodic_shade(wk_view, current_timeout)
+        return False
+
+    def start_periodic_shade(self, wk_view, timeout=1):
         """Start the periodic shade update on a webview"""
         self.stop_periodic_shade(wk_view)
         cid = GObject.timeout_add_seconds(timeout,
-                add_forever, self.do_shades, wk_view)
+                self._on_shades_timeout, wk_view, timeout)
         wk_view.shades_timeout_shade_cid = cid
 
     def do_create_configure_widget(self):
