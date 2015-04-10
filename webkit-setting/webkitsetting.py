@@ -289,7 +289,6 @@ class WebKitSettingPlugin (GObject.Object,
             return
         soup_session.remove_feature(cache)
         cache.dump()
-        cache.flush()
 
     def config_soup(self):
         """Load config values to a soup session"""
