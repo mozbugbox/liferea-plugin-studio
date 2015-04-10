@@ -481,7 +481,9 @@ class BlockLinkAddonPlugin (GObject.Object,
 
         browser_tabs = self.props.shell.props.browser_tabs
 
-        view_in_tabs = [x.htmlviewq for x in browser_tabs.props.tab_info_list]
+        html_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
+        view_in_tabs = [self.webkit_view_from_container(x.get_widget())
+                for x in html_in_tabs]
         views.extend(view_in_tabs)
         return views
 
