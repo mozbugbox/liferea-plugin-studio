@@ -371,7 +371,10 @@ class FilterManager(GObject.GObject):
     def _should_block(self, url, *args):
         """Worker for test if a url should be blocked"""
         cache_save_trigger = 128
+        max_url_length = 2048 # max length of url before treat as garbage
         ret = False
+
+        if len(url) > max_url_length: return ret
 
         for rinfo in self.filters.values():
             if rinfo is None: continue
@@ -547,7 +550,7 @@ class BlockLinkAddonPlugin (GObject.Object,
     def on_resource_request_starting(self, web_view, web_frame,
             web_resource, request, response, *user_data_dummy):
         """webkit_view resouce-request-starting event handler"""
-        max_cache_miss = -1
+        max_cache_miss = -1 # per page max cache missing/new url
         #print(request, dir(request))
         ret = False
         uri = request.props.uri
