@@ -405,11 +405,11 @@ class WebKitSettingPlugin (GObject.Object,
         grid_webview = builder.get_object("grid_webview")
         parent = grid_webview.get_parent()
         parent.remove(grid_webview)
-        stack.add_titled(grid_webview, "webview", "WebView")
+        stack.add_titled(grid_webview, "webview", "Web Page")
         grid_soup = builder.get_object("grid_soup")
         parent = grid_soup.get_parent()
         parent.remove(grid_soup)
-        stack.add_titled(grid_soup, "soup", "Soup")
+        stack.add_titled(grid_soup, "soup", "Network")
         stack.props.visible_child = grid_webview
         handlers = {
             "spinbutton_int_value_changed_cb":
