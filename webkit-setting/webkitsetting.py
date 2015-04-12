@@ -55,7 +55,11 @@ WEBVIEW_PROPERTY_TYPE = {
 
 # SoupSession properties sort by type
 SOUP_PROPERTY_TYPE = {
-        bool: ["enable-disk-cache"],
+        bool: [
+            "enable-disk-cache",
+            "enable-persistent-cookie",
+            "enable-do-not-track",
+            ],
         int: [
             "max-conns",
             "max-conns-per-host",
@@ -83,6 +87,8 @@ CONFIG_DEFAULTS = {
         "max-conns-per-host": "6",
         "enable-disk-cache": "False",
         "cache-size": "32",
+        "enable-persistent-cookie": "False",
+        "enable-do-not-track": "False",
         }
 
 def liferea_symbols():
@@ -141,6 +147,8 @@ class ConfigManager(ConfigParser):
             "$HOME/.config/liferea/plugins/webkitsetting")
     cache_dir = os.path.expandvars(
             "$HOME/.cache/liferea/webkitsetting")
+    data_dir = os.path.expandvars(
+            "$HOME/.local/share/liferea/plugin-data/webkitsetting")
 
     def __init__(self, config_dir=None):
         ConfigParser.__init__(self, CONFIG_DEFAULTS)
@@ -149,6 +157,9 @@ class ConfigManager(ConfigParser):
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
+
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
 
         if config_dir is not None:
             self.config_dir = config_dir
@@ -182,6 +193,12 @@ class ConfigManager(ConfigParser):
     def get_http_cache_dir(self):
         cache_dir = os.path.join(self.cache_dir, "httpcache")
         return cache_dir
+
+    def get_cookiejar_filename(self):
+        cookiejar_fname = "cookiejar.db"
+        cookiejar_fullname = os.path.join(self.data_dir, cookiejar_fname)
+        return cookiejar_fullname
+
 
 class WebKitSettingPlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
@@ -290,9 +307,40 @@ class WebKitSettingPlugin (GObject.Object,
         soup_session.remove_feature(cache)
         cache.dump()
 
+    def load_soup_cookiejar(self, soup_session):
+        fname = self.config.get_cookiejar_filename()
+        cookiejar = Soup.CookieJarDB.new(fname, False)
+        soup_session.add_feature(cookiejar)
+        return cookiejar
+
+    def get_soup_cookiejar(self, soup_session):
+        """Get soup cookiejar for the given soup session"""
+        cookiejars = soup_session.get_features(Soup.CookieJarDB)
+        fname = self.config.get_cookiejar_filename()
+        for cookiejar in cookiejars:
+            if fname == cookiejar.props.filename:
+                return cookiejar
+
+    def unload_soup_cookiejar(self, soup_session):
+        cookiejar = self.get_soup_cookiejar(soup_session)
+        if not cookiejar:
+            return
+        soup_session.remove_feature(cookiejar)
+
+    def on_soup_request_queued(self, soup_session, msg, *user_data):
+        sec = SOUP_SECTION
+        if self.config.getboolean(sec, "enable-do-not-track"):
+            headers = msg.props.request_headers
+            headers.replace("DNT", "1")
+        #print(msg.props.request_headers.get("DNT"))
+
     def config_soup(self):
         """Load config values to a soup session"""
         soup_session = WebKit.get_default_session()
+        cid = soup_session.connect("request_queued",
+                self.on_soup_request_queued)
+        soup_session.request_queued_cid = cid
+
         sec = SOUP_SECTION
         for k in SOUP_PROPERTY_TYPE [int]:
             if k in ["cache-size"]:
@@ -306,12 +354,21 @@ class WebKitSettingPlugin (GObject.Object,
                     self.load_soup_cache(soup_session)
                 else:
                     self.unload_soup_cache(soup_session)
+            elif k == "enable-persistent-cookie":
+                if val:
+                    self.load_soup_cookiejar(soup_session)
+                else:
+                    self.unload_soup_cookiejar(soup_session)
+            elif k in ["enable-do-not-track"]:
+                pass
             else:
                 soup_session.set_property(k, val)
 
     def unconfig_soup(self):
         """Load config values to a soup session"""
         soup_session = WebKit.get_default_session()
+        soup_session.disconnect(soup_session.request_queued_cid)
+
         self.unload_soup_cache(soup_session)
 
     def do_create_configure_widget(self):
@@ -389,10 +446,17 @@ class WebKitSettingPlugin (GObject.Object,
                         self.unload_soup_cache(soup_session)
                     sb = self.builder.get_object("spinbutton_cache_size")
                     sb.props.sensitive = pvalue
+                elif pname == "enable-persistent-cookie":
+                    if pvalue:
+                        self.load_soup_cookiejar(soup_session)
+                    else:
+                        self.unload_soup_cookiejar(soup_session)
                 elif pname == "cache-size":
                     cache = self.get_soup_cache(soup_session)
                     if cache:
                         cache.set_max_size(pvalue * 1024 * 1024)
+                elif pname in ["enable-do-not-track"]:
+                    pass
                 else:
                     soup_session.set_property(pname, pvalue)
                 break
