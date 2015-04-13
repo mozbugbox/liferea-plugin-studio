@@ -101,7 +101,7 @@ def download_file(url, output_name, cb=None, *args):
     except  URLError as err:
         print("Err: {} {}".format(url, err.reason))
         return
-    content = content.decode("UTF-8")
+    content = content.decode("UTF-8").strip()
     with io.open(output_name, "w", encoding="UTF-8") as fdw:
         fdw.write(content)
     if cb is not None:
