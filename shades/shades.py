@@ -146,7 +146,8 @@ class ShadesPlugin (GObject.Object,
         webkit_view = kids[1].get_child()
         return webkit_view
 
-    def get_main_webkit_view(self):
+    @property
+    def main_webkit_view(self):
         """Return the webkit webview in the item_view"""
         shell = self.props.shell
         item_view = shell.props.item_view
@@ -158,10 +159,11 @@ class ShadesPlugin (GObject.Object,
         webkit_view = self.webkit_view_from_container(container)
         return webkit_view
 
-    def get_current_webviews(self):
+    @property
+    def current_webviews(self):
         """Get all the available webviews """
         views = []
-        webkit_view = self.get_main_webkit_view()
+        webkit_view = self.main_webkit_view
         if webkit_view is None:
             return views
         views.append(webkit_view)
@@ -174,7 +176,8 @@ class ShadesPlugin (GObject.Object,
         views.extend(view_in_tabs)
         return views
 
-    def get_browser_notebook(self):
+    @property
+    def browser_notebook(self):
         """Return the notebook of browser_tabs"""
         browser_tabs = self.props.shell.props.browser_tabs
         bt_notebook = browser_tabs.props.notebook
@@ -187,23 +190,23 @@ class ShadesPlugin (GObject.Object,
         #print(self.plugin_info)
         #window = self.shell.get_window()
 
-        current_views = self.get_current_webviews()
+        current_views = self.current_webviews
         for v in current_views:
             self.hook_webkit_view(v)
 
         # watch new webkit view in browser_tabs
-        bt_notebook = self.get_browser_notebook()
+        bt_notebook = self.browser_notebook
         cid = bt_notebook.connect("page-added", self.on_tab_added)
         bt_notebook.shades_page_added_cid = cid
 
     def do_deactivate (self):
         """Peas Plugin exit point"""
-        current_views = self.get_current_webviews()
+        current_views = self.current_webviews
         if current_views:
             for v in current_views:
                 self.unhook_webkit_view(v)
 
-        bt_notebook = self.get_browser_notebook()
+        bt_notebook = self.browser_notebook
         bt_notebook.disconnect(bt_notebook.shades_page_added_cid)
         del bt_notebook.shades_page_added_cid
 

@@ -190,11 +190,13 @@ class ConfigManager(ConfigParser):
         GObject.timeout_add_seconds(self.delay_save_timeout, self.save_config)
         return ret
 
-    def get_http_cache_dir(self):
+    @property
+    def http_cache_dir(self):
         cache_dir = os.path.join(self.cache_dir, "httpcache")
         return cache_dir
 
-    def get_cookiejar_filename(self):
+    @property
+    def cookiejar_filename(self):
         cookiejar_fname = "cookiejar.db"
         cookiejar_fullname = os.path.join(self.data_dir, cookiejar_fname)
         return cookiejar_fullname
@@ -213,7 +215,7 @@ class WebKitSettingPlugin (GObject.Object,
         if not hasattr(self, "config"):
             WebKitSettingPlugin.config = ConfigManager()
 
-        current_views = self.get_current_webviews()
+        current_views = self.current_webviews
         for v in current_views:
             self.hook_webkit_view(v)
             self.config_webkit_view(v)
@@ -245,14 +247,26 @@ class WebKitSettingPlugin (GObject.Object,
         webkit_view = kids[1].get_child()
         return webkit_view
 
-    def get_current_webviews(self):
-        """Get all the available webviews """
-        views = []
-        item_view = self.props.shell.props.item_view
+    @property
+    def main_webkit_view(self):
+        """Return the webkit webview in the item_view"""
+        shell = self.props.shell
+        item_view = shell.props.item_view
+        if not item_view:
+            return None
         htmlv = item_view.props.html_view
         #print(itemv_webkit_view)
         container = htmlv.get_widget()
         webkit_view = self.webkit_view_from_container(container)
+        return webkit_view
+
+    @property
+    def current_webviews(self):
+        """Get all the available webviews """
+        views = []
+        webkit_view = self.main_webkit_view
+        if webkit_view is None:
+            return views
         views.append(webkit_view)
 
         browser_tabs = self.props.shell.props.browser_tabs
@@ -284,7 +298,7 @@ class WebKitSettingPlugin (GObject.Object,
         sec = SOUP_SECTION
         cache_size = self.config.getint(sec, "cache-size")
         cache_size = cache_size * 1024 * 1024
-        cache_dir = self.config.get_http_cache_dir()
+        cache_dir = self.config.http_cache_dir
         cache = Soup.Cache.new(cache_dir,
                 Soup.CacheType.SINGLE_USER)
         cache.set_max_size(cache_size)
@@ -295,7 +309,7 @@ class WebKitSettingPlugin (GObject.Object,
     def get_soup_cache(self, soup_session):
         """Get soup cache for the given soup session"""
         caches = soup_session.get_features(Soup.Cache)
-        cache_dir = self.config.get_http_cache_dir()
+        cache_dir = self.config.http_cache_dir
         for cache in caches:
             if cache_dir == cache.props.cache_dir:
                 return cache
@@ -308,7 +322,7 @@ class WebKitSettingPlugin (GObject.Object,
         cache.dump()
 
     def load_soup_cookiejar(self, soup_session):
-        fname = self.config.get_cookiejar_filename()
+        fname = self.config.cookiejar_filename
         cookiejar = Soup.CookieJarDB.new(fname, False)
         soup_session.add_feature(cookiejar)
         return cookiejar
@@ -316,7 +330,7 @@ class WebKitSettingPlugin (GObject.Object,
     def get_soup_cookiejar(self, soup_session):
         """Get soup cookiejar for the given soup session"""
         cookiejars = soup_session.get_features(Soup.CookieJarDB)
-        fname = self.config.get_cookiejar_filename()
+        fname = self.config.cookiejar_filename
         for cookiejar in cookiejars:
             if fname == cookiejar.props.filename:
                 return cookiejar
@@ -429,7 +443,7 @@ class WebKitSettingPlugin (GObject.Object,
         for ptype, pnames in WEBVIEW_PROPERTY_TYPE.items():
             if pname not in pnames: continue
             sec = WEBKIT_SECTION
-            wk_views = self.get_current_webviews()
+            wk_views = self.current_webviews
             for wk_view in wk_views:
                 wk_settings = wk_view.get_settings()
                 wk_settings.set_property(pname, pvalue)
