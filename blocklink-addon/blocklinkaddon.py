@@ -177,7 +177,7 @@ class FilterManager(GObject.GObject):
 
         self.config = ConfigManager()
         self.cache_size = 8192
-        self.cache_added = 0
+        self.cache_save_trigger = 128
         self.filter_list = None
         self.filename2filter = None
         self.thread_download_filter_list = None
@@ -194,7 +194,6 @@ class FilterManager(GObject.GObject):
         from lrucache import LRUCache
         sec = MAIN_SECTION
         self.cache = LRUCache(self.config.getint(sec, "cache-size"))
-        self.cache_json = LRUCache(256)
         def _idle_do():
             self.cache.load(self.cache_fullname)
             self.load_filters()
@@ -361,9 +360,9 @@ class FilterManager(GObject.GObject):
 
     def save_cache(self):
         """Save cache to disk"""
-        if self.cache_added > 0:
+        if self.cache.insert_count > 0:
             self.cache.save(self.cache_fullname)
-            self.cache_added = 0
+            self.cache.reset_insert_count()
 
     def cache_key(self, url, *args):
         key = url + json.dumps(args, sort_keys=True, indent=None,
@@ -372,7 +371,6 @@ class FilterManager(GObject.GObject):
 
     def _should_block(self, url, *args):
         """Worker for test if a url should be blocked"""
-        cache_save_trigger = 128
         max_url_length = 2048 # max length of url before treat as garbage
         ret = False
 
@@ -387,8 +385,7 @@ class FilterManager(GObject.GObject):
 
         key = self.cache_key(url, *args)
         self.cache.set(key, ret)
-        self.cache_added += 1
-        if self.cache_added > cache_save_trigger:
+        if self.cache.insert_count > self.cache_save_trigger:
             self.save_cache()
         #print(len(self.cache.cache), sys.getsizeof(self.cache.cache))
         return ret

@@ -12,11 +12,16 @@ NATIVE=sys.getfilesystemencoding()
 # http://www.kunxi.org/blog/2014/05/lru-cache-in-python/
 import collections
 import json
+
 class LRUCache:
     """A Least Recently Used Cache"""
     def __init__(self, capacity):
         self.capacity = capacity
         self.cache = collections.OrderedDict()
+        self._insert_count = 0
+
+    def __len__(self):
+        return len(self.cache)
 
     def get(self, key):
         value = self.cache.pop(key)
@@ -30,6 +35,14 @@ class LRUCache:
             if len(self.cache) >= self.capacity:
                 self.cache.popitem(last=False)
         self.cache[key] = value
+        self._insert_count += 1
+
+    @property
+    def insert_count(self):
+        return self._insert_count
+
+    def reset_insert_count(self):
+        self._insert_count = 0
 
     def load(self, path):
         try:
