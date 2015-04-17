@@ -8,7 +8,7 @@ Collection of liferea plugins
 * webkitsetting: Access settings of `WebKit` and `Soup` environment 
 
 # Dependency
-* Liferea: version >= 0.11.3 (current git master as of 2015-04-08)
+* Liferea: version >= 1.11.3 (current git master as of 2015-04-08)
 * Libpeas with loader for python 2.7 compiled into Liferea
 * [adblockparser.py](https://github.com/scrapinghub/adblockparser): required by the `blocklink` plugin.
 
