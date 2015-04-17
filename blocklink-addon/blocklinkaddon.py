@@ -65,7 +65,7 @@ TIME_UNIT = {
 
 CONFIG_TYPES = {
         bool:  [],
-        int:   ["cache-size"],
+        int:   ["cache-size-block", "cache-size-unblock"],
         float: [],
         str:   ["filters"],
         }
@@ -75,7 +75,8 @@ MAIN_SECTION = "main" # configparse section name
 CONFIG_SECTIONS = [MAIN_SECTION]
 # Default values for ConfigParser
 CONFIG_DEFAULTS = {
-        "cache-size": "8192",
+        "cache-size-block": "8192",
+        "cache-size-unblock": "4096",
         "filters": "",
         }
 
@@ -162,6 +163,60 @@ class ConfigManager(ConfigParser):
         GObject.timeout_add_seconds(self.delay_save_timeout, self.save_config)
         return ret
 
+class BlockCache:
+    filename_unblock = "lookup-cache-unblock.json"
+    filename_block = "lookup-cache-block.json"
+    def __init__(self, cache_dir,
+            cache_size_unblock=4096, cache_size_block=8192):
+        """Cache for block test result.
+
+        Two caches for block/unblock are used, so we can set different
+        cache size for blocked or unblocked url cache.
+        """
+        self.save_trigger = 64
+        self.cache_dir = cache_dir
+        self.cache_filename_unblock = os.path.join(cache_dir,
+                self.filename_unblock)
+        self.cache_filename_block = os.path.join(cache_dir, self.filename_block)
+
+        from lrucache import LRUCache
+        self.cache_unblock = LRUCache(cache_size_unblock)
+        self.cache_block = LRUCache(cache_size_block)
+
+    def load(self):
+        self.cache_unblock.load(self.cache_filename_unblock)
+        self.cache_block.load(self.cache_filename_block)
+
+    def make_key(self, url, *args):
+        key = url + json.dumps(args, sort_keys=True, indent=None,
+                separators= (',', ':'))
+        return key
+
+    def save(self, force=False):
+        trigger = 0 if force == True else self.save_trigger
+        if self.cache_unblock.insert_count > trigger:
+            self.cache_unblock.save(self.cache_filename_unblock)
+            self.cache_unblock.reset_insert_count()
+        if self.cache_block.insert_count > trigger:
+            self.cache_block.save(self.cache_filename_block)
+            self.cache_unblock.reset_insert_count()
+
+    def __getitem__(self, key):
+        if key in self.cache_unblock:
+            ret = self.cache_unblock[key]
+        else:
+            ret = self.cache_block[key]
+        return ret
+
+    def __setitem__(self, key, value):
+        if value:
+            self.cache_block[key] = value
+        else:
+            self.cache_unblock[key] = value
+
+    def __contains__(self, key):
+        return key in self.cache_block or key in self.cache_unblock
+
 class FilterManager(GObject.GObject):
     filter_list_fname = "filter-lists.json"
     cache_fname = "lookup-cache.json"
@@ -176,26 +231,25 @@ class FilterManager(GObject.GObject):
             os.makedirs(self.cache_dir)
 
         self.config = ConfigManager()
-        self.cache_size = 8192
-        self.cache_save_trigger = 128
         self.filter_list = None
         self.filename2filter = None
         self.thread_download_filter_list = None
         self.refresh_interval = 60*60*24*7 # 1 week
         self.refresh_timeout_id = -1
         self.filters = {}
+        self.filter_list_update_time = -1
         self.filter_list_fullname = os.path.join(self.cache_dir,
                 self.filter_list_fname)
-        self.cache_fullname = os.path.join(self.cache_dir, self.cache_fname)
-        self.filter_list_update_time = -1
 
         self.load_filter_list()
 
-        from lrucache import LRUCache
         sec = MAIN_SECTION
-        self.cache = LRUCache(self.config.getint(sec, "cache-size"))
+        cache_size_block = self.config.getint(sec, "cache-size-block")
+        cache_size_unblock = self.config.getint(sec, "cache-size-unblock")
+        self.cache = BlockCache(self.cache_dir,
+                cache_size_unblock, cache_size_block)
         def _idle_do():
-            self.cache.load(self.cache_fullname)
+            self.cache.load()
             self.load_filters()
 
         GObject.idle_add(_idle_do)
@@ -358,17 +412,6 @@ class FilterManager(GObject.GObject):
         f = self.filter_list[url]["filename"]
         del self.filters[f]
 
-    def save_cache(self):
-        """Save cache to disk"""
-        if self.cache.insert_count > 0:
-            self.cache.save(self.cache_fullname)
-            self.cache.reset_insert_count()
-
-    def cache_key(self, url, *args):
-        key = url + json.dumps(args, sort_keys=True, indent=None,
-                separators= (',', ':'))
-        return key
-
     def _should_block(self, url, *args):
         """Worker for test if a url should be blocked"""
         max_url_length = 2048 # max length of url before treat as garbage
@@ -383,18 +426,16 @@ class FilterManager(GObject.GObject):
             if ret:
                 break
 
-        key = self.cache_key(url, *args)
-        self.cache.set(key, ret)
-        if self.cache.insert_count > self.cache_save_trigger:
-            self.save_cache()
-        #print(len(self.cache.cache), sys.getsizeof(self.cache.cache))
+        key = self.cache.make_key(url, *args)
+        self.cache[key] = ret
+        self.cache.save()
         return ret
 
     def should_block(self, url, *args):
         """Test if a  url should be blocked with cache"""
-        key = self.cache_key(url, *args)
+        key = self.cache.make_key(url, *args)
         try:
-            ret = self.cache.get(key)
+            ret = self.cache[key]
             #print("cached")
         except KeyError:
             #print("NO cached0")
@@ -444,7 +485,7 @@ class FilterManager(GObject.GObject):
         if self.refresh_timeout_id > 0:
             GObject.source_remove(self.refresh_timeout_id)
             self.refresh_timeout_id = -1
-        self.save_cache()
+        self.cache.save(force=True)
         self.config.save_config()
 
 class BlockLinkAddonPlugin (GObject.Object,
@@ -570,9 +611,9 @@ class BlockLinkAddonPlugin (GObject.Object,
             domain = ""
 
         options = {"third-party": third_party}
-        key = self.filter_manager.cache_key(uri, options)
+        key = self.filter_manager.cache.make_key(uri, options)
         try:
-            ret = self.filter_manager.cache.get(key)
+            ret = self.filter_manager.cache[key]
             #print("cached")
         except KeyError:
             if 0 < max_cache_miss < web_view.cache_miss:

@@ -23,12 +23,15 @@ class LRUCache:
     def __len__(self):
         return len(self.cache)
 
-    def get(self, key):
+    def __contains__(self, key):
+        return key in self.cache
+
+    def __getitem__(self, key):
         value = self.cache.pop(key)
         self.cache[key] = value
         return value
 
-    def set(self, key, value):
+    def __setitem__(self, key, value):
         try:
             self.cache.pop(key)
         except KeyError:
