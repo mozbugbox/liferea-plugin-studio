@@ -16,7 +16,7 @@ import json
 class LRUCache:
     """A Least Recently Used Cache"""
     def __init__(self, capacity):
-        self.capacity = capacity
+        self._capacity = capacity
         self.cache = collections.OrderedDict()
         self._insert_count = 0
 
@@ -35,10 +35,20 @@ class LRUCache:
         try:
             self.cache.pop(key)
         except KeyError:
-            if len(self.cache) >= self.capacity:
+            if len(self.cache) >= self._capacity:
                 self.cache.popitem(last=False)
         self.cache[key] = value
         self._insert_count += 1
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, cap):
+        self._capacity = cap
+        cap_list = list(self.cache.items())[:cap]
+        self.cache = collections.OrderedDict(cap_list)
 
     @property
     def insert_count(self):
@@ -52,6 +62,8 @@ class LRUCache:
             if os.path.exists(path):
                 with io.open(path, encoding="utf-8") as fd:
                     cache_list = json.load(fd, encoding="UTF-8")
+                    if len(cache_list) > self._capacity:
+                        cache_list = cache_list[:self._capacity]
                     self.cache = collections.OrderedDict(cache_list)
         except ValueError:
             pass
