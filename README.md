@@ -2,7 +2,11 @@
 Collection of liferea plugins
 
 # Plugins
-* blocklink: Block unwanted URLs for the Web view
+* blocklink: Block unwanted URLs for the Web view.
+  
+   Depends on `adblockparser.py`. This could be **quite slow**
+   with large block list. Don't use this plugin on slow machine.
+
 * Shades: Substitute bright/white background colors with a darker background color in Web view
 * shortcuts: A few extra shortcut keys for skim the feeds
 * webkitsetting: Access settings of `WebKit` and `Soup` environment 
