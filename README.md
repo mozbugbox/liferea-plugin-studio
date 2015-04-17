@@ -3,7 +3,7 @@ Collection of liferea plugins
 
 # Plugins
 * blocklink: Block unwanted URLs for the Web view
-* Shades: Substitude bright/white background colors with a darker background color in Web view
+* Shades: Substitute bright/white background colors with a darker background color in Web view
 * shortcuts: A few extra shortcut keys for skim the feeds
 * webkitsetting: Access settings of `WebKit` and `Soup` environment 
 
