@@ -131,6 +131,75 @@ class ConfigManager(ConfigParser):
         GObject.timeout_add_seconds(self.delay_save_timeout, self.save_config)
         return ret
 
+class InspectorWindow:
+    """Embed WebKitInspector for a WebKit WebView"""
+    def __init__(self, wk_view):
+        settings = wk_view.props.settings
+        self.old_developer_extras = settings.props.enable_developer_extras
+        settings.props.enable_developer_extras = True
+
+        self.window = Gtk.Window()
+        self.window.props.title = "Liferea Inspector"
+        screen = Gdk.Screen.get_default()
+        w = screen.get_width()
+        h = screen.get_height()
+        self.window.resize(int(w*2/3), int(h*2/3))
+        inspector = wk_view.props.web_inspector
+        inspector.connect("inspect-web-view", self.on_inspect_web_view)
+        inspector.connect("show-window", self.on_show_window)
+        inspector.connect("close-window", self.on_close_window)
+        inspector.connect("finished", self.on_finished)
+
+        wk_view.connect("populate-popup", self.on_context_menu)
+        self.inspector = inspector
+        self.wk_view = wk_view
+
+    def on_context_menu(self, wk_view, default_menu, *udata):
+        menuitem = Gtk.MenuItem("Inspect Element")
+        menuitem.show()
+        menuitem.connect("activate", self.on_menu_activate)
+        default_menu.append(menuitem)
+        return False
+
+    def detach_webview(self):
+        """On unhook webview, remove signal connections"""
+        inspector = self.inspector
+        wk_view = self.wk_view
+
+        inspector.disconnect_by_func(self.on_inspect_web_view)
+        inspector.disconnect_by_func(self.on_show_window)
+        inspector.disconnect_by_func(self.on_close_window)
+        inspector.disconnect_by_func(self.on_finished)
+
+        wk_view.disconnect_by_func(self.on_context_menu)
+
+        settings = self.wk_view.props.settings
+        settings.props.enable_developer_extras = self.old_developer_extras
+        self.inspector = None
+        self.wk_view = None
+
+    def on_menu_activate(self, *args):
+        self.show()
+
+    def on_inspect_web_view(self, inspector, wk_view, *data):
+        myview = WebKit.WebView()
+        self.window.add(myview)
+        return myview
+
+    def on_show_window(self, inspector, *data):
+        self.window.show_all()
+
+    def on_close_window(self, inspector, *data):
+        self.window.hide()
+
+    def on_finished(self, inspector, *data):
+        self.window.destroy()
+        self.inspector = None
+
+    def show(self):
+        if self.inspector:
+            self.inspector.show()
+
 class ShadesPlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
     object = GObject.property (type=GObject.Object)
@@ -224,12 +293,16 @@ class ShadesPlugin (GObject.Object,
                 self.on_load_status_changed)
         wk_view.shades_load_status_cid = cid
         wk_view.shades_timeout_shade_cid = -1
+        wk_view.inspector_window = InspectorWindow(wk_view)
 
     def unhook_webkit_view(self, wk_view):
         if hasattr(wk_view, "shades_load_status_cid"):
             wk_view.disconnect(wk_view.shades_load_status_cid)
             del wk_view.shades_load_status_cid
         self.stop_periodic_shade(wk_view)
+
+        wk_view.inspector_window.detach_webview()
+        del wk_view.inspector_window
 
     def do_shades(self, wk_view):
         """run the javascript function that shades web page"""
