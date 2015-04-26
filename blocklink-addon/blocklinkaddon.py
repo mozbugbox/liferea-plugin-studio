@@ -220,7 +220,11 @@ class BlockCache:
 class FilterManager(GObject.GObject):
     filter_list_fname = "filter-lists.json"
     cache_fname = "lookup-cache.json"
+    hidden_css_fname = "element-hide.css"
+
     cache_dir = os.path.expandvars("$HOME/.cache/liferea/blocklink/")
+    data_dir = os.path.expandvars(
+            "$HOME/.local/share/liferea/plugin-data/blocklink")
 
     __gsignals__ = {
             "filter-list-updated": (GObject.SIGNAL_RUN_FIRST, None, ())
@@ -231,6 +235,7 @@ class FilterManager(GObject.GObject):
             os.makedirs(self.cache_dir)
 
         self.config = ConfigManager()
+        self.hidden_css_content = None # css to hide element
         self.filter_list = None
         self.filename2filter = None
         self.thread_download_filter_list = None
@@ -240,6 +245,8 @@ class FilterManager(GObject.GObject):
         self.filter_list_update_time = -1
         self.filter_list_fullname = os.path.join(self.cache_dir,
                 self.filter_list_fname)
+        self.hidden_css_fname = os.path.join(self.data_dir,
+                self.hidden_css_fname)
 
         self.load_filter_list()
 
@@ -250,6 +257,7 @@ class FilterManager(GObject.GObject):
                 cache_size_unblock, cache_size_block)
         def _idle_do():
             self.cache.load()
+            self.load_hidden_css()
             self.load_filters()
 
         GObject.idle_add(_idle_do)
@@ -274,6 +282,17 @@ class FilterManager(GObject.GObject):
         filters = filters.encode("UTF-8")
         sec = MAIN_SECTION
         self.config.set(sec, "filters", filters)
+
+    def load_hidden_css(self):
+        """load css text for hidding DOM elements"""
+        fname = self.hidden_css_fname
+        if os.path.exists(fname):
+            with io.open(fname, encoding="UTF_8") as fd:
+                content = fd.read()
+                self.hidden_css_content = """
+                <style type="text/css">
+                {}
+                </style>""".format(content)
 
     def get_filter_list(self):
         """Get available filters"""
@@ -577,17 +596,26 @@ class BlockLinkAddonPlugin (GObject.Object,
 
     def hook_webkit_view(self, wk_view):
         """on new webkit_view, deal with it"""
+        wk_view.cache_miss = 0
         cid = wk_view.connect("resource-request-starting",
                 self.on_resource_request_starting)
         wk_view.blocklink_resource_request_start_cid = cid
-        wk_view.cache_miss = 0
+
+        cid = wk_view.connect("notify::load-status",
+                self.on_load_status_changed)
+        wk_view.blocklink_load_status_cid = cid
 
     def unhook_webkit_view(self, wk_view):
         """ clean hooks on webkit_view"""
-        cid = "blocklink_resource_request_start_cid"
-        if hasattr(wk_view, cid):
-            wk_view.disconnect(getattr(wk_view, cid))
-        for k in [cid, "cache_miss"]:
+        cids = [
+                "blocklink_resource_request_start_cid",
+                "blocklink_load_status_cid",
+               ]
+        for cid in cids:
+            if hasattr(wk_view, cid):
+                wk_view.disconnect(getattr(wk_view, cid))
+
+        for k in cids + ["cache_miss"]:
             if hasattr(wk_view, k):
                 delattr(wk_view, k)
 
@@ -628,6 +656,16 @@ class BlockLinkAddonPlugin (GObject.Object,
             #print("blocked: {}".format(uri))
             request.props.uri = "about:blank"
         return ret
+
+    def on_load_status_changed(self, wk_view, gparamstring):
+        """handle load status change for WebView"""
+        status = wk_view.props.load_status
+        if status == WebKit.LoadStatus.FIRST_VISUALLY_NON_EMPTY_LAYOUT:
+            dom = wk_view.get_dom_document()
+            head = dom.props.head
+            css_content = self.filter_manager.hidden_css_content
+            if css_content:
+                head.insert_adjacent_html("beforeend", css_content)
 
     def do_create_configure_widget(self):
         if not hasattr(self, "filter_manager"):
