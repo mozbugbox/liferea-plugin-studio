@@ -204,7 +204,11 @@ class ConfigManager(ConfigParser):
 
 class WebKitSettingPlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
+    __gtype_name__ = "WebKitSettingPlugin"
+
     shell = GObject.property (type=Liferea.Shell)
+
+    _shell = None
     config = ConfigManager()
 
     def __init__(self):
@@ -214,7 +218,8 @@ class WebKitSettingPlugin (GObject.Object,
         """Override Peas Plugin entry point"""
         if not hasattr(self, "config"):
             WebKitSettingPlugin.config = ConfigManager()
-        WebKitSettingPlugin.shell = self.props.shell
+        if self._shell is None:
+            WebKitSettingPlugin._shell = self.props.shell
 
         current_views = self.current_webviews
         for v in current_views:
@@ -223,7 +228,7 @@ class WebKitSettingPlugin (GObject.Object,
         self.config_soup()
 
         # watch new webkit view in browser_tabs
-        browser_tabs = self.shell.props.browser_tabs
+        browser_tabs = self._shell.props.browser_tabs
         self.tabs = browser_tabs
         bt_notebook = browser_tabs.props.notebook
         bt_notebook.connect("page-added", self.on_tab_added)
@@ -251,7 +256,7 @@ class WebKitSettingPlugin (GObject.Object,
     @property
     def main_webkit_view(self):
         """Return the webkit webview in the item_view"""
-        shell = self.shell
+        shell = self._shell
         item_view = shell.props.item_view
         if not item_view:
             return None
@@ -270,7 +275,7 @@ class WebKitSettingPlugin (GObject.Object,
             return views
         views.append(webkit_view)
 
-        browser_tabs = self.shell.props.browser_tabs
+        browser_tabs = self._shell.props.browser_tabs
 
         html_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
         view_in_tabs = [self.webkit_view_from_container(x.get_widget())

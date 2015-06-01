@@ -509,7 +509,11 @@ class FilterManager(GObject.GObject):
 
 class BlockLinkAddonPlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
+    __gtype_name__ = "BlockLinkAddonPlugin"
+
     shell = GObject.property (type=Liferea.Shell)
+
+    _shell = None
     filter_manager = FilterManager()
 
     def __init__(self):
@@ -524,7 +528,7 @@ class BlockLinkAddonPlugin (GObject.Object,
     @property
     def main_webkit_view(self):
         """Return the webkit webview in the item_view"""
-        shell = self.shell
+        shell = self._shell
         item_view = shell.props.item_view
         if not item_view:
             return None
@@ -543,7 +547,7 @@ class BlockLinkAddonPlugin (GObject.Object,
             return views
         views.append(webkit_view)
 
-        browser_tabs = self.shell.props.browser_tabs
+        browser_tabs = self._shell.props.browser_tabs
 
         html_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
         view_in_tabs = [self.webkit_view_from_container(x.get_widget())
@@ -554,7 +558,7 @@ class BlockLinkAddonPlugin (GObject.Object,
     @property
     def browser_notebook(self):
         """Return the notebook of browser_tabs"""
-        browser_tabs = self.shell.props.browser_tabs
+        browser_tabs = self._shell.props.browser_tabs
         bt_notebook = browser_tabs.props.notebook
         return bt_notebook
 
@@ -562,7 +566,8 @@ class BlockLinkAddonPlugin (GObject.Object,
         """Plugin entry point"""
         if not hasattr(self, "filter_manager"):
             BlockLinkAddonPlugin.filter_manager = FilterManager()
-        BlockLinkAddonPlugin.shell = self.props.shell
+        if self._shell is None:
+            BlockLinkAddonPlugin._shell = self.props.shell
         self.filter_manager.start()
         #print(self.plugin_info)
         #window = self.props.shell.get_window()

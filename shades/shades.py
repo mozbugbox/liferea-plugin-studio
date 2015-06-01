@@ -202,8 +202,12 @@ class InspectorWindow:
 
 class ShadesPlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
+    __gtype_name__ = "ShadesPlugin"
+
     object = GObject.property (type=GObject.Object)
     shell = GObject.property (type=Liferea.Shell)
+
+    _shell = None
     config = ConfigManager()
 
     def __init__(self):
@@ -218,7 +222,7 @@ class ShadesPlugin (GObject.Object,
     @property
     def main_webkit_view(self):
         """Return the webkit webview in the item_view"""
-        shell = self.shell
+        shell = self._shell
         item_view = shell.props.item_view
         if not item_view:
             return None
@@ -237,7 +241,7 @@ class ShadesPlugin (GObject.Object,
             return views
         views.append(webkit_view)
 
-        browser_tabs = self.shell.props.browser_tabs
+        browser_tabs = self._shell.props.browser_tabs
 
         html_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
         view_in_tabs = [self.webkit_view_from_container(x.get_widget())
@@ -248,7 +252,7 @@ class ShadesPlugin (GObject.Object,
     @property
     def browser_notebook(self):
         """Return the notebook of browser_tabs"""
-        browser_tabs = self.shell.props.browser_tabs
+        browser_tabs = self._shell.props.browser_tabs
         bt_notebook = browser_tabs.props.notebook
         return bt_notebook
 
@@ -256,9 +260,10 @@ class ShadesPlugin (GObject.Object,
         """Override Peas Plugin entry point"""
         if not hasattr(self, "config"):
             ShadesPlugin.config = ConfigManager()
-        ShadesPlugin.shell = self.props.shell
+        if self._shell is None:
+            ShadesPlugin._shell = self.props.shell
         #print(self.plugin_info)
-        #window = self.shell.get_window()
+        #window = self._shell.get_window()
 
         current_views = self.current_webviews
         for v in current_views:
