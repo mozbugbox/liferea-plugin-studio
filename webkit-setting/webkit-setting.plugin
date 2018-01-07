@@ -1,6 +1,6 @@
 [Plugin]
 Module=webkitsetting
-Loader=python
+Loader=python3
 IAge=2
 Name=WebKit Setting
 Version=0.1
