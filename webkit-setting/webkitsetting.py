@@ -36,6 +36,8 @@ import os
 import io
 import sys
 
+gi.require_version('WebKit', '3.0')
+
 from gi.repository import GObject, Gtk, Gdk, PeasGtk, Liferea
 from gi.repository import WebKit, Soup
 
