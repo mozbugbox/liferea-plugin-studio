@@ -35,6 +35,11 @@ Plugin dev help:
 import os
 import io
 import sys
+import gi
+
+gi.require_version('Gtk', '3.0')
+gi.require_version('PeasGtk', '1.0')
+gi.require_version('WebKit', '3.0')
 
 from gi.repository import GObject, Gtk, Gdk, PeasGtk, Liferea
 from gi.repository import WebKit, Soup
@@ -99,7 +104,7 @@ def liferea_symbols():
         if hasattr(obj, "__name__"):
             print(obj.__name__+":")
         else:
-            print(`obj` + ":")
+            print("obj" + ":")
         for k in dir(obj):
             # ignore noise
             if k.startswith("__"): continue
