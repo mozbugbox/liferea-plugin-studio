@@ -1,6 +1,6 @@
 [Plugin]
 Module=shades
-Loader=python
+Loader=python3
 IAge=2
 Name=Web Shades
 Version=0.1
