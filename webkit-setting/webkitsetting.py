@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # vim:fileencoding=utf-8:sw=4:et
 #
-# Change WebKit setting for WebView in Liferea
+# Change WebKit2 setting for WebView in Liferea
 #
 # Copyright (C) 2015 Mozbugbox <mozbugbox@yahoo.com.au>
 #
@@ -39,12 +39,10 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('PeasGtk', '1.0')
-gi.require_version('WebKit', '3.0')
-
-gi.require_version('WebKit', '3.0')
+gi.require_version('WebKit2', '4.0')
 
 from gi.repository import GObject, Gtk, Gdk, PeasGtk, Liferea
-from gi.repository import WebKit, Soup
+from gi.repository import WebKit2, Soup
 
 UI_FILE_PATH = os.path.join(os.path.dirname(__file__), "webkitsetting.ui")
 
@@ -52,9 +50,9 @@ UI_FILE_PATH = os.path.join(os.path.dirname(__file__), "webkitsetting.ui")
 WEBVIEW_PROPERTY_TYPE = {
         bool: [
             "enable-dns-prefetching",
-            "enable-accelerated-compositing",
             "enable-frame-flattening",
             "enable-smooth-scrolling",
+            "enable-fullscreen",
             ],
         int: ["minimum-font-size"],
         str: ["user-agent"],
@@ -66,6 +64,7 @@ SOUP_PROPERTY_TYPE = {
             "enable-disk-cache",
             "enable-persistent-cookie",
             "enable-do-not-track",
+            "enable-fullscreen",
             ],
         int: [
             "max-conns",
@@ -83,9 +82,9 @@ CONFIG_SECTIONS = [WEBKIT_SECTION, SOUP_SECTION]
 CONFIG_DEFAULTS = {
         # webview
         "enable-dns-prefetching": "False",
-        "enable-accelerated-compositing": "False",
         "enable-frame-flattening": "False",
         "enable-smooth-scrolling": "False",
+        "enable-fullscreen": "False",
         "minimum-font-size": "7",
         "user-agent": "",
 
@@ -232,7 +231,7 @@ class WebKitSettingPlugin (GObject.Object,
         for v in current_views:
             self.hook_webkit_view(v)
             self.config_webkit_view(v)
-        self.config_soup()
+        #self.config_soup()
 
         # watch new webkit view in browser_tabs
         browser_tabs = self._shell.props.browser_tabs
@@ -242,23 +241,17 @@ class WebKitSettingPlugin (GObject.Object,
 
     def do_deactivate (self):
         """Peas Plugin exit point"""
-        self.unconfig_soup()
+        #self.unconfig_soup()
         self.config.save_config()
 
     def on_tab_added(self, noteb, child, page_num, *user_data_dummy):
         """callback for new webview tab creation"""
-        webkit_view = self.webkit_view_from_container(child)
-        #print(webkit_view)
-        self.hook_webkit_view(webkit_view)
+        # A notebook tab holds a GtkBox with another GtkBox that separates
+        # location bar and LifereaHtmlView
+        self.hook_webkit_view(child.get_children()[1])
 
     def hook_webkit_view(self, wk_view):
         self.config_webkit_view(wk_view)
-
-    def webkit_view_from_container(self, container):
-        """fetch webkit_view from a LifereaHtmlView container"""
-        kids = container.get_children()
-        webkit_view = kids[1].get_child()
-        return webkit_view
 
     @property
     def main_webkit_view(self):
@@ -266,12 +259,15 @@ class WebKitSettingPlugin (GObject.Object,
         shell = self._shell
         item_view = shell.props.item_view
         if not item_view:
+            print("Item view not found!")
             return None
+
         htmlv = item_view.props.html_view
-        #print(itemv_webkit_view)
-        container = htmlv.get_widget()
-        webkit_view = self.webkit_view_from_container(container)
-        return webkit_view
+        if not htmlv:
+            print("HTML view not found!")
+            return None
+
+        return htmlv
 
     @property
     def current_webviews(self):
@@ -280,14 +276,12 @@ class WebKitSettingPlugin (GObject.Object,
         webkit_view = self.main_webkit_view
         if webkit_view is None:
             return views
-        views.append(webkit_view)
+        views.append(webkit_view.props.renderwidget)
 
         browser_tabs = self._shell.props.browser_tabs
-
-        html_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
-        view_in_tabs = [self.webkit_view_from_container(x.get_widget())
-                for x in html_in_tabs]
-        views.extend(view_in_tabs)
+        box_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
+        html_in_tabs = [x.get_widget() for x in box_in_tabs]
+        views.extend(html_in_tabs)
         return views
 
     def config_webkit_view(self, wk_view):
@@ -297,15 +291,24 @@ class WebKitSettingPlugin (GObject.Object,
         config = self.config
         for k in WEBVIEW_PROPERTY_TYPE[bool]:
             val = config.getboolean(sec, k)
-            wk_settings.set_property(k, val)
+            try:
+                wk_settings.set_property(k, val)
+            except:
+                print("Setting '"+k+"' failed!")
 
         for k in WEBVIEW_PROPERTY_TYPE[int]:
             val = config.getint(sec, k)
-            wk_settings.set_property(k, val)
+            try:
+                wk_settings.set_property(k, val)
+            except:
+                print("Setting '"+k+"' failed!")
 
         for k in WEBVIEW_PROPERTY_TYPE[str]:
             val = config.get(sec, k)
-            wk_settings.set_property(k, val)
+            try:
+                wk_settings.set_property(k, val)
+            except:
+                print("Setting '"+k+"' failed!")
 
     def load_soup_cache(self, soup_session):
         sec = SOUP_SECTION
@@ -363,7 +366,7 @@ class WebKitSettingPlugin (GObject.Object,
 
     def config_soup(self):
         """Load config values to a soup session"""
-        soup_session = WebKit.get_default_session()
+        soup_session = WebKit2.get_default_session()
         cid = soup_session.connect("request_queued",
                 self.on_soup_request_queued)
         soup_session.request_queued_cid = cid
@@ -393,7 +396,7 @@ class WebKitSettingPlugin (GObject.Object,
 
     def unconfig_soup(self):
         """Load config values to a soup session"""
-        soup_session = WebKit.get_default_session()
+        soup_session = WebKit2.get_default_session()
         soup_session.disconnect(soup_session.request_queued_cid)
 
         self.unload_soup_cache(soup_session)
@@ -401,7 +404,7 @@ class WebKitSettingPlugin (GObject.Object,
     def do_create_configure_widget(self):
         """Peas Plugin Configurable entry point"""
         if not hasattr(self, "config"):
-            WebKitSettingPlugin.config = ConfigManager()
+            WebKit2SettingPlugin.config = ConfigManager()
         #print(self.plugin_info)
         grid = Gtk.Grid()
         self.setup_ui(grid)
@@ -424,7 +427,7 @@ class WebKitSettingPlugin (GObject.Object,
         screen = Gdk.Screen.get_default()
         w = screen.get_width()
         h = screen.get_height()
-        swin.set_size_request(int(w*3/5), int(h*3/5))
+        swin.set_size_request(min(600, int(w*3/5)), int(h*3/5))
         swin.add(stack)
         grid.attach(stack_switcher, 0, 0, 1, 1)
         grid.attach(swin, 0, 1, 1, 1)
@@ -433,10 +436,11 @@ class WebKitSettingPlugin (GObject.Object,
         parent = grid_webview.get_parent()
         parent.remove(grid_webview)
         stack.add_titled(grid_webview, "webview", "Web Page")
-        grid_soup = builder.get_object("grid_soup")
-        parent = grid_soup.get_parent()
-        parent.remove(grid_soup)
-        stack.add_titled(grid_soup, "soup", "Network")
+        # Hide network stuff as it doesn't work with Webkit2
+        #grid_soup = builder.get_object("grid_soup")
+        #parent = grid_soup.get_parent()
+        #parent.remove(grid_soup)
+        #stack.add_titled(grid_soup, "soup", "Network")
         stack.props.visible_child = grid_webview
         handlers = {
             "spinbutton_int_value_changed_cb":
@@ -465,7 +469,7 @@ class WebKitSettingPlugin (GObject.Object,
             for ptype, pnames in SOUP_PROPERTY_TYPE.items():
                 if pname not in pnames: continue
                 sec = SOUP_SECTION
-                soup_session = WebKit.get_default_session()
+                soup_session = WebKit2.get_default_session()
                 if pname == "enable-disk-cache":
                     if pvalue:
                         self.load_soup_cache(soup_session)
