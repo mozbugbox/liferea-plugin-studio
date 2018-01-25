@@ -48,7 +48,7 @@ def liferea_symbols():
         if hasattr(obj, "__name__"):
             print(obj.__name__+":")
         else:
-            print(`obj` + ":")
+            print("obj" + ":")
         for k in dir(obj):
             # ignore noise
             if k.startswith("__"): continue
