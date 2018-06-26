@@ -1,0 +1,12 @@
+[Plugin]
+Module=accels
+Loader=python3
+IAge=2
+Name=Edit Accels
+Version=0.1
+Description=Editing Accels/shortcuts for Liferea actions
+Authors=Mozbugbox <mozbugbox@yahoo.com.au>
+Copyright=Copyright © 2014-2018 Mozbugbox <mozbugbox@yahoo.com.au>
+Website=http://lzone.de/liferea/
+Help=http://lzone.de/liferea/
+

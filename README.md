@@ -8,12 +8,12 @@ Collection of liferea plugins
    with large block list. Don't use this plugin on slow machine.
 
 * Shades: Substitute bright/white background colors with a darker background color in Web view
-* shortcuts: A few extra shortcut keys for skim the feeds
+* accels: Edit accelarators/shortcuts for Liferea actions
 * webkitsetting: Access settings of `WebKit` and `Soup` environment 
 
 # Dependency
-* Liferea: version >= 1.11.3 (current git master as of 2015-04-08)
-* Libpeas with loader for python 2.7 compiled into Liferea
+* Liferea: version >= 1.12.3
+* Libpeas with loader for python3 compiled into Liferea
 * [adblockparser.py](https://github.com/scrapinghub/adblockparser): required by the `blocklink` plugin.
 
 # Installation
