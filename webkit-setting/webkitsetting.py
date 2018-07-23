@@ -53,6 +53,7 @@ WEBVIEW_PROPERTY_TYPE = {
             "enable-frame-flattening",
             "enable-smooth-scrolling",
             "enable-fullscreen",
+            "auto-load-images",
             ],
         int: ["minimum-font-size"],
         str: ["user-agent"],
@@ -85,6 +86,7 @@ CONFIG_DEFAULTS = {
         "enable-frame-flattening": "False",
         "enable-smooth-scrolling": "False",
         "enable-fullscreen": "False",
+        "auto-load-images": "True",
         "minimum-font-size": "7",
         "user-agent": "",
 
