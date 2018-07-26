@@ -49,7 +49,7 @@ except ImportError:
     import urlparse
 
 from gi.repository import GObject, Gtk, Gdk, PeasGtk, Liferea
-from gi.repository import WebKit
+from gi.repository import WebKit2
 
 from adblockparserlite import AdblockRulesLite as AdblockRules
 #from adblockparser import AdblockRules
