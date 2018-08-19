@@ -48,8 +48,12 @@ except ImportError:
     import urllib2 as request
     import urlparse
 
+gi.require_version('Gtk', '3.0')
+gi.require_version('PeasGtk', '1.0')
+gi.require_version('WebKit2', '4.0')
+
 from gi.repository import GObject, Gtk, Gdk, PeasGtk, Liferea
-from gi.repository import WebKit
+from gi.repository import WebKit2
 
 from adblockparserlite import AdblockRulesLite as AdblockRules
 #from adblockparser import AdblockRules
