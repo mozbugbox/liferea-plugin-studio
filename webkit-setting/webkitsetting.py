@@ -26,7 +26,7 @@ Change WebKit settings
 
 """
 Plugin dev help:
-  http://lzone.de/Writing-Liferea-Plugins-Tutorial-Part-1
+  https://lzone.de/Writing-Liferea-Plugins-Tutorial-Part-1
   https://developer.gnome.org/libpeas/1.10/pt01.html
   https://wiki.gnome.org/Apps/Gedit/PythonPluginHowTo
   https://github.com/lwindolf/liferea/tree/master/plugins
@@ -281,9 +281,10 @@ class WebKitSettingPlugin (GObject.Object,
         views.append(webkit_view.props.renderwidget)
 
         browser_tabs = self._shell.props.browser_tabs
-        box_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
-        html_in_tabs = [x.get_widget() for x in box_in_tabs]
-        views.extend(html_in_tabs)
+        if browser_tabs.props.tab_info_list != None:
+            box_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
+            html_in_tabs = [x.get_widget() for x in box_in_tabs]
+            views.extend(html_in_tabs)
         return views
 
     def config_webkit_view(self, wk_view):
