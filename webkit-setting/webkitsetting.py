@@ -159,9 +159,9 @@ class ConfigManager(ConfigParser):
             "$HOME/.local/share/liferea/plugin-data/webkitsetting")
 
     def __init__(self, config_dir=None):
-        ConfigParser.__init__(self, CONFIG_DEFAULTS)
-        self.changed = False # Flag for self.config changed status
+        self.changed = False  # Flag for self.config changed status
         self.delay_save_timeout = 10
+        ConfigParser.__init__(self, CONFIG_DEFAULTS)
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
