@@ -36,8 +36,13 @@ import os
 import io
 import sys
 
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('PeasGtk', '1.0')
+gi.require_version('WebKit2', '4.0')
+
 from gi.repository import GObject, Gtk, Gdk, PeasGtk, Liferea
-from gi.repository import WebKit
+from gi.repository import WebKit2
 
 UI_FILE_PATH = os.path.join(os.path.dirname(__file__), "shades.ui")
 
@@ -89,9 +94,9 @@ class ConfigManager(ConfigParser):
             "$HOME/.config/liferea/plugins/shades")
 
     def __init__(self, config_dir=None):
-        ConfigParser.__init__(self, CONFIG_DEFAULTS)
         self.changed = False # Flag for self.config changed status
         self.delay_save_timeout = 10
+        ConfigParser.__init__(self, CONFIG_DEFAULTS)
         self.shades_script = ""
 
         if config_dir is not None:
@@ -134,7 +139,7 @@ class ConfigManager(ConfigParser):
 class InspectorWindow:
     """Embed WebKitInspector for a WebKit WebView"""
     def __init__(self, wk_view):
-        settings = wk_view.props.settings
+        settings = wk_view.get_settings()
         self.old_developer_extras = settings.props.enable_developer_extras
         settings.props.enable_developer_extras = True
 
@@ -144,21 +149,22 @@ class InspectorWindow:
         w = screen.get_width()
         h = screen.get_height()
         self.window.resize(int(w*2/3), int(h*2/3))
-        inspector = wk_view.props.web_inspector
-        inspector.connect("inspect-web-view", self.on_inspect_web_view)
-        inspector.connect("show-window", self.on_show_window)
-        inspector.connect("close-window", self.on_close_window)
-        inspector.connect("finished", self.on_finished)
+        inspector = wk_view.get_inspector()
+        #inspector.connect("inspect-web-view", self.on_inspect_web_view)
+        #inspector.connect("show-window", self.on_show_window)
+        #inspector.connect("close-window", self.on_close_window)
+        #inspector.connect("finished", self.on_finished)
 
-        wk_view.connect("populate-popup", self.on_context_menu)
+        wk_view.connect("context-menu", self.on_context_menu)
         self.inspector = inspector
         self.wk_view = wk_view
 
-    def on_context_menu(self, wk_view, default_menu, *udata):
-        menuitem = Gtk.MenuItem("Inspect Element")
+    def on_context_menu(self, wk_view, context_menu, event, hit_test_result):
+        menuitem = WebKit2.ContextMenuItem.new_from_stock_action(
+                WebKit2.ContextMenuAction.INSPECT_ELEMENT)
         menuitem.show()
-        menuitem.connect("activate", self.on_menu_activate)
-        default_menu.append(menuitem)
+        menuitem.get_action.connect("activate", self.on_menu_activate)
+        context_menu.append(menuitem)
         return False
 
     def detach_webview(self):
@@ -166,14 +172,14 @@ class InspectorWindow:
         inspector = self.inspector
         wk_view = self.wk_view
 
-        inspector.disconnect_by_func(self.on_inspect_web_view)
-        inspector.disconnect_by_func(self.on_show_window)
-        inspector.disconnect_by_func(self.on_close_window)
-        inspector.disconnect_by_func(self.on_finished)
+        #inspector.disconnect_by_func(self.on_inspect_web_view)
+        #inspector.disconnect_by_func(self.on_show_window)
+        #inspector.disconnect_by_func(self.on_close_window)
+        #inspector.disconnect_by_func(self.on_finished)
 
         wk_view.disconnect_by_func(self.on_context_menu)
 
-        settings = self.wk_view.props.settings
+        settings = self.wk_view.get_settings()
         settings.props.enable_developer_extras = self.old_developer_extras
         self.inspector = None
         self.wk_view = None
@@ -182,7 +188,7 @@ class InspectorWindow:
         self.show()
 
     def on_inspect_web_view(self, inspector, wk_view, *data):
-        myview = WebKit.WebView()
+        myview = WebKit2.WebView()
         self.window.add(myview)
         return myview
 
@@ -204,8 +210,8 @@ class ShadesPlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
     __gtype_name__ = "ShadesPlugin"
 
-    object = GObject.property (type=GObject.Object)
-    shell = GObject.property (type=Liferea.Shell)
+    object = GObject.property(type=GObject.Object)
+    shell = GObject.property(type=Liferea.Shell)
 
     _shell = None
     config = ConfigManager()
@@ -213,24 +219,21 @@ class ShadesPlugin (GObject.Object,
     def __init__(self):
         GObject.Object.__init__(self)
 
-    def webkit_view_from_container(self, container):
-        """fetch webkit_view from a LifereaHtmlView container"""
-        kids = container.get_children()
-        webkit_view = kids[1].get_child()
-        return webkit_view
-
     @property
     def main_webkit_view(self):
         """Return the webkit webview in the item_view"""
         shell = self._shell
         item_view = shell.props.item_view
         if not item_view:
+            print("Item view not found!")
             return None
+
         htmlv = item_view.props.html_view
-        #print(itemv_webkit_view)
-        container = htmlv.get_widget()
-        webkit_view = self.webkit_view_from_container(container)
-        return webkit_view
+        if not htmlv:
+            print("HTML view not found!")
+            return None
+
+        return htmlv
 
     @property
     def current_webviews(self):
@@ -239,14 +242,12 @@ class ShadesPlugin (GObject.Object,
         webkit_view = self.main_webkit_view
         if webkit_view is None:
             return views
-        views.append(webkit_view)
+        views.append(webkit_view.props.renderwidget)
 
         browser_tabs = self._shell.props.browser_tabs
-
-        html_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
-        view_in_tabs = [self.webkit_view_from_container(x.get_widget())
-                for x in html_in_tabs]
-        views.extend(view_in_tabs)
+        box_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
+        html_in_tabs = [x.get_widget() for x in box_in_tabs]
+        views.extend(html_in_tabs)
         return views
 
     @property
@@ -274,7 +275,7 @@ class ShadesPlugin (GObject.Object,
         cid = bt_notebook.connect("page-added", self.on_tab_added)
         bt_notebook.shades_page_added_cid = cid
 
-    def do_deactivate (self):
+    def do_deactivate(self):
         """Peas Plugin exit point"""
         current_views = self.current_webviews
         if current_views:
@@ -289,25 +290,31 @@ class ShadesPlugin (GObject.Object,
 
     def on_tab_added(self, noteb, child, page_num, *user_data_dummy):
         """callback for new webview tab creation"""
-        webkit_view = self.webkit_view_from_container(child)
-        #print(webkit_view)
-        self.hook_webkit_view(webkit_view)
+        # A notebook tab holds a GtkBox with another GtkBox that separates
+        # location bar and LifereaHtmlView
+        self.hook_webkit_view(child.get_children()[1])
 
     def hook_webkit_view(self, wk_view):
-        cid = wk_view.connect("notify::load-status",
+        cid = wk_view.connect("load-changed",
                 self.on_load_status_changed)
+        failed_id = wk_view.connect("load-failed",
+                self.on_load_failed)
         wk_view.shades_load_status_cid = cid
+        wk_view.shades_load_failed_id = failed_id
         wk_view.shades_timeout_shade_cid = -1
-        wk_view.inspector_window = InspectorWindow(wk_view)
+        #wk_view.inspector_window = InspectorWindow(wk_view)
 
     def unhook_webkit_view(self, wk_view):
         if hasattr(wk_view, "shades_load_status_cid"):
             wk_view.disconnect(wk_view.shades_load_status_cid)
             del wk_view.shades_load_status_cid
+        if hasattr(wk_view, "shades_load_faild_id"):
+            wk_view.disconnect(wk_view.shades_load_failed_id)
+            del wk_view.shades_load_failed_id
         self.stop_periodic_shade(wk_view)
 
-        wk_view.inspector_window.detach_webview()
-        del wk_view.inspector_window
+        #wk_view.inspector_window.detach_webview()
+        #del wk_view.inspector_window
 
     def do_shades(self, wk_view):
         """run the javascript function that shades web page"""
@@ -327,19 +334,21 @@ class ShadesPlugin (GObject.Object,
             LifereaShades.shade_window(window, {}, {});
             """.format(bgcolor, threshold, color)
         #print(threshold, color)
-        wk_view.execute_script(call_content)
+        wk_view.run_javascript(call_content)
 
-    def on_load_status_changed(self, wid, gparamstring):
+    def on_load_status_changed(self, wid, load_event):
         """handle load status change for WebView"""
-        status = wid.props.load_status
-        if status == WebKit.LoadStatus.FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-            wid.execute_script(self.config.shades_script)
+        if load_event == WebKit2.LoadEvent.COMMITTED:
+            wid.run_javascript(self.config.shades_script)
             self.do_shades(wid)
             self.start_periodic_shade(wid)
-        elif status in [WebKit.LoadStatus.FINISHED, WebKit.LoadStatus.FAILED]:
+        elif load_event in [WebKit2.LoadEvent.FINISHED]:
             self.do_shades(wid)
             self.stop_periodic_shade(wid)
         #print(status)
+
+    def on_load_failed(self, wid, load_event, failed_url, error):
+        self.stop_periodic_shade(wid)
 
     def stop_periodic_shade(self, wk_view):
         """Stop the periodic shade update on a webview"""
