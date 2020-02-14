@@ -183,6 +183,10 @@
         continue;
       }
       var rgb = LifereaShades.parse_rgb(bgcolor);
+      if (rgb.length == 4 && rgb[3] === 0) {
+        // console.log("Transparent", rgb);
+        continue;
+      }
       var hsl = LifereaShades.rgbToHsl(rgb[0], rgb[1], rgb[2]);
       if (hsl[2] <= threshold) {
         continue;
