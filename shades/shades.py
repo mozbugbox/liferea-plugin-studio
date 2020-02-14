@@ -52,7 +52,7 @@ CONFIG_TYPES = {
         float: ["threshold", "lightness"],
         str:   [],
 
-        "colorbutton": ["color"],
+        "colorbutton": ["color", "text-color"],
         }
 
 
@@ -63,6 +63,7 @@ CONFIG_DEFAULTS = {
         "threshold": "0.80",
         "lightness": "0.66",
         "use-color": "False",
+        "text-color": "rgb(0, 0, 0)",
         "color": "rgb(100, 190, 170)"
         }
 
@@ -303,6 +304,7 @@ class ShadesPlugin (GObject.Object,
         wk_view.shades_load_failed_id = failed_id
         wk_view.shades_timeout_shade_cid = -1
         #wk_view.inspector_window = InspectorWindow(wk_view)
+        #wk_view.inspector_window.show()
 
     def unhook_webkit_view(self, wk_view):
         if hasattr(wk_view, "shades_load_status_cid"):
@@ -322,6 +324,7 @@ class ShadesPlugin (GObject.Object,
         sec = MAIN_SECTION
         conf = self.config
         threshold = conf.get(sec, "threshold")
+        text_color = '"{}"'.format(conf.get(sec, "text-color"))
         if conf.getboolean(sec, "use-color"):
             color = '"{}"'.format(conf.get(sec, "color"))
             bgcolor = color
@@ -330,9 +333,9 @@ class ShadesPlugin (GObject.Object,
             bgcolor = '"hsl(0, 0%, {}%)"'.format(color*100)
         call_content = """
             // webkit default to solid white!
-            LifereaShades.set_background({});
+            LifereaShades.set_background({}, {});
             LifereaShades.shade_window(window, {}, {});
-            """.format(bgcolor, threshold, color)
+            """.format(text_color, bgcolor, threshold, color)
         #print(threshold, color)
         wk_view.run_javascript(call_content)
 

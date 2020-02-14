@@ -269,9 +269,10 @@
   };
 
   // Set background color if it is not set
-  LifereaShades.set_background = function(background_color) {
+  LifereaShades.set_background = function(foreground_color, background_color) {
     var bgcolor = window.document.body.style.backgroundColor;
     if (!bgcolor) {
+      window.document.body.style.color = foreground_color;
       window.document.body.style.backgroundColor = background_color;
     }
   };
