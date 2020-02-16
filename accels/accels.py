@@ -91,6 +91,17 @@ class AccelsPlugin (GObject.Object, Liferea.ShellActivatable):
     object = GObject.property(type=GObject.Object)
     shell = GObject.property(type=Liferea.Shell)
 
+    @property
+    def item_list(self):
+        """Return TreeView for item list"""
+        for view_name in ["wideViewItems", "normalViewItems"]:
+            item_viewport = self.shell.lookup(view_name)
+            if item_viewport.get_mapped():
+                break
+        scrolled_window = item_viewport.get_child()
+        item_list = scrolled_window.get_child()
+        return item_list
+
     def do_activate(self):
         # print(self.plugin_info)
         shell = Liferea.Shell
@@ -99,8 +110,17 @@ class AccelsPlugin (GObject.Object, Liferea.ShellActivatable):
         accels = self.load_accels()
 
         # print(f"accels: {accels}")
+        single_key = False
         for item in accels:
             app.set_accels_for_action(item[0], item[1])
+            if not single_key and [len(x) for x in item[1]].count(1) > 0:
+                single_key = True
+
+        if single_key:
+            # turn off "search_enable" which start search by single key
+            feed_list = shell.lookup("feedlist")
+            feed_list.props.enable_search = False
+            self.item_list.props.enable_search = False
 
     def do_deactivate(self):
         pass
