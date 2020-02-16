@@ -54,6 +54,8 @@ WEBVIEW_PROPERTY_TYPE = {
             "enable-smooth-scrolling",
             "enable-fullscreen",
             "auto-load-images",
+            "media-playback-requires-user-gesture",
+            "zoom-text-only",
             ],
         int: ["minimum-font-size"],
         str: ["user-agent"],
@@ -65,7 +67,6 @@ SOUP_PROPERTY_TYPE = {
             "enable-disk-cache",
             "enable-persistent-cookie",
             "enable-do-not-track",
-            "enable-fullscreen",
             ],
         int: [
             "max-conns",
@@ -87,6 +88,8 @@ CONFIG_DEFAULTS = {
         "enable-smooth-scrolling": "False",
         "enable-fullscreen": "False",
         "auto-load-images": "True",
+        "media-playback-requires-user-gesture": "False",
+        "zoom-text-only": "False",
         "minimum-font-size": "7",
         "user-agent": "",
 
@@ -534,21 +537,21 @@ class WebKitSettingPlugin (GObject.Object,
         config = self.config
         for k in WEBVIEW_PROPERTY_TYPE[bool]:
             ku = k.replace("-", "_")
-            val = config.getboolean(sec, k)
+            val = config.getboolean(sec, k, fallback=CONFIG_DEFAULTS[k])
             wname = "checkbutton_" + ku
             widget = self.builder.get_object(wname)
             widget.props.active = val
 
         for k in WEBVIEW_PROPERTY_TYPE[int] + SOUP_PROPERTY_TYPE[int]:
             ku = k.replace("-", "_")
-            val = config.getint(sec, k)
+            val = config.getint(sec, k, fallback=CONFIG_DEFAULTS[k])
             wname = "spinbutton_" + ku
             widget = self.builder.get_object(wname)
             widget.props.value = val
 
         for k in WEBVIEW_PROPERTY_TYPE[str]:
             ku = k.replace("-", "_")
-            val = config.get(sec, k)
+            val = config.get(sec, k, fallback=CONFIG_DEFAULTS[k])
             wname = "entry_" + ku
             widget = self.builder.get_object(wname)
             widget.props.text = val
