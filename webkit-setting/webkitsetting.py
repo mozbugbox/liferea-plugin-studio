@@ -289,6 +289,15 @@ class WebKitSettingPlugin (GObject.Object,
         views.extend(html_in_tabs)
         return views
 
+    def on_button_clear_cache_clicked(self, wid, *args):
+        """Clear webkit2 cache.
+        Currently cannot set a cache quota on webkit2 gtk(?).
+        Cache could grow into GB.
+        """
+        web_view = self.main_webkit_view.props.renderwidget
+        web_context = web_view.get_context()
+        web_context.clear_cache()
+
     def config_webkit_view(self, wk_view):
         """Load config values to a webkit webview"""
         wk_settings = wk_view.get_settings()
@@ -448,6 +457,8 @@ class WebKitSettingPlugin (GObject.Object,
         #stack.add_titled(grid_soup, "soup", "Network")
         stack.props.visible_child = grid_webview
         handlers = {
+            "on_button_clear_cache_clicked":
+                self.on_button_clear_cache_clicked,
             "spinbutton_int_value_changed_cb":
                 self.on_spinbutton_int_value_changed,
             "entry_editing_done_cb": self.on_entry_editing_done,
