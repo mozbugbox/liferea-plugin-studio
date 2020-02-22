@@ -104,12 +104,14 @@ class AccelsPlugin (GObject.Object, Liferea.ShellActivatable):
 
     def do_activate(self):
         # print(self.plugin_info)
+        accels = self.load_accels()
+        GObject.idle_add(self.set_accels, accels)
+
+    def set_accels(self, accels):
+        # print(f"accels: {accels}")
         shell = Liferea.Shell
         mainwin = shell.get_window()
         app = mainwin.props.application
-        accels = self.load_accels()
-
-        # print(f"accels: {accels}")
         single_key = False
         for item in accels:
             app.set_accels_for_action(item[0], item[1])
@@ -149,8 +151,9 @@ class accelsConfigure(GObject.Object, PeasGtk.Configurable):
         """Setup configuration widget"""
         # print(self.plugin_info)
         grid = Gtk.Grid()
-        button_dump = Gtk.Button("Dump Accels")
+        button_dump = Gtk.Button("_Dump Accels")
         button_dump.props.tooltip_text = "Dump all the Liferea actions to config file."
+        button_dump.props.use_underline = True
         button_dump.connect("clicked", self._on_dump_button_clicked)
         grid.attach(button_dump, 0, 0, 1, 1)
         grid.show_all()
