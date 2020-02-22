@@ -158,7 +158,7 @@ class ConfigManager(ConfigParser):
         if self.changed:
             with open(self.config_fname, "w") as fdw:
                 self.write(fdw)
-            self.changed == False
+            self.changed = False
 
     def set(self, sec, k, v):
         """Set config value and save it in a timeout"""
