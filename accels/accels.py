@@ -154,9 +154,27 @@ class accelsConfigure(GObject.Object, PeasGtk.Configurable):
         button_dump = Gtk.Button("_Dump Accels")
         button_dump.props.tooltip_text = "Dump all the Liferea actions to config file."
         button_dump.props.use_underline = True
+        button_dump.props.expand = False
+        button_dump.props.halign = Gtk.Align.START
+        button_dump.props.margin = 6
         button_dump.connect("clicked", self._on_dump_button_clicked)
-        grid.attach(button_dump, 0, 0, 1, 1)
+        grid.attach(button_dump, 0, 0, 2, 1)
+
+        label = Gtk.Label("Path:")
+        label.props.xalign = 0
+        label.props.margin = 6
+        label.props.expand = False
+        grid.attach(label, 0, 1, 1, 1)
+
+        label = Gtk.Label()
+        label.props.xalign = 0
+        label.props.margin = 6
+        label.props.expand = False
+        label.props.selectable = True
+        grid.attach(label, 1, 1, 1, 1)
         grid.show_all()
+
+        label.props.label = f"{self.accel_path}"
         return grid
 
     def get_actions(self):
@@ -190,10 +208,15 @@ class accelsConfigure(GObject.Object, PeasGtk.Configurable):
 
         return result
 
+    @property
+    def accel_path(self):
+        return get_accel_path(self.plugin_info.get_data_dir())
+
     def _on_dump_button_clicked(self, wid):
         actions = self.get_actions()
 
-        accel_path = get_accel_path(self.plugin_info.get_data_dir())
+        accel_path = self.accel_path
+
 
         if accel_path.exists():
             mtime = accel_path.stat().st_mtime
