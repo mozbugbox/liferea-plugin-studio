@@ -30,7 +30,7 @@ Change accels/shortcuts:
 
 import io
 import pathlib
-from gi.repository import GObject, Gtk, Gdk, Peas, PeasGtk, Liferea
+from gi.repository import GObject, Gtk, Gdk, PeasGtk, Liferea
 
 """
 Plugin dev help:
@@ -152,30 +152,51 @@ class accelsConfigure(GObject.Object, PeasGtk.Configurable):
         # print(self.plugin_info)
         grid = Gtk.Grid()
         button_dump = Gtk.Button("_Dump Accels")
-        button_dump.props.tooltip_text = "Dump all the Liferea actions to config file."
+        button_dump.props.tooltip_text = "Dump all the Liferea actions along with accelerations to the config file."
         button_dump.props.use_underline = True
         button_dump.props.expand = False
         button_dump.props.halign = Gtk.Align.START
         button_dump.props.margin = 6
         button_dump.connect("clicked", self._on_dump_button_clicked)
-        grid.attach(button_dump, 0, 0, 2, 1)
+        grid.attach(button_dump, 1, 2, 1, 1)
 
         label = Gtk.Label("Path:")
+        label.props.tooltip_text= "Config file path"
         label.props.xalign = 0
         label.props.margin = 6
         label.props.expand = False
-        grid.attach(label, 0, 1, 1, 1)
+        grid.attach(label, 0, 0, 1, 1)
 
         label = Gtk.Label()
         label.props.xalign = 0
         label.props.margin = 6
         label.props.expand = False
         label.props.selectable = True
-        grid.attach(label, 1, 1, 1, 1)
-        grid.show_all()
-
         label.props.label = f"{self.accel_path}"
+        grid.attach(label, 1, 0, 2, 1)
+
+        tooltip = "Press a key to find out its keyname for acceleration"
+        entry = Gtk.Entry()
+        entry.props.width_chars = 24
+        entry.props.tooltip_text= tooltip
+        entry.connect("key-press-event", self.on_show_keyname_keypress_event)
+        grid.attach(entry, 1, 1, 1, 1)
+
+        label = Gtk.Label("_Keyname:")
+        label.props.tooltip_text= tooltip
+        label.props.xalign = 0
+        label.props.margin = 6
+        label.props.expand = False
+        label.props.use_underline = True
+        label.props.mnemonic_widget = entry
+        grid.attach(label, 0, 1, 1, 1)
+
+        grid.show_all()
         return grid
+
+    def on_show_keyname_keypress_event(self, entry, evt, *args):
+        entry.set_text(Gdk.keyval_name(evt.keyval))
+        return True
 
     def get_actions(self):
         """collect actions for the GtkApplication"""
@@ -216,8 +237,6 @@ class accelsConfigure(GObject.Object, PeasGtk.Configurable):
         actions = self.get_actions()
 
         accel_path = self.accel_path
-
-
         if accel_path.exists():
             mtime = accel_path.stat().st_mtime
             import time
