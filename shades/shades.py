@@ -246,9 +246,11 @@ class ShadesPlugin (GObject.Object,
         views.append(webkit_view.props.renderwidget)
 
         browser_tabs = self._shell.props.browser_tabs
-        box_in_tabs = [x.htmlview for x in browser_tabs.props.tab_info_list]
-        html_in_tabs = [x.get_widget() for x in box_in_tabs]
-        views.extend(html_in_tabs)
+        tab_infos = browser_tabs.props.tab_info_list
+        if tab_infos:
+            box_in_tabs = [x.htmlview for x in tab_infos]
+            html_in_tabs = [x.get_widget() for x in box_in_tabs]
+            views.extend(html_in_tabs)
         return views
 
     @property
