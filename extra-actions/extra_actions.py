@@ -572,7 +572,7 @@ LifereaPS.followpage("%(rel)s")
         ITEMSTORE_WEIGHT = 11
         weight = model.get_value(miter, ITEMSTORE_WEIGHT)
         is_unread = weight == 700
-        #for i in range(13): log_error(i, model.get_value(miter, i))
+        # for i in range(13): log_error(i, model.get_value(miter, i))
         while unread_only and not is_unread and miter:
             if direct == "down":
                 miter = model.iter_next(miter)
