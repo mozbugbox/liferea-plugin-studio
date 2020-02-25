@@ -211,7 +211,11 @@ class accelsConfigure(GObject.Object, PeasGtk.Configurable):
         return grid
 
     def on_show_keyname_keypress_event(self, entry, evt, *args):
-        entry.set_text(Gdk.keyval_name(evt.keyval))
+        # remove <Mode2> Which is NumLock ON
+        # https://developer.gnome.org/gtk3/stable/checklist-modifiers.html
+        modifier = evt.state & Gtk.accelerator_get_default_mod_mask()
+        accel_name = Gtk.accelerator_name(evt.keyval, modifier)
+        entry.set_text(accel_name)
         return True
 
     def get_actions(self):
