@@ -333,8 +333,8 @@ class ExtraActionsPlugin (GObject.Object,
                 "webkit_go_back", "webkit_go_forward",
                 "webkit_follow_previous_page", "webkit_follow_next_page",
                 "search_focused_list",
-                "skim_over_up", "skim_over_down",
-                "skim_over_up_unread", "skim_over_down_unread",
+                "skim_over_up_item", "skim_over_down_item",
+                "skim_over_up_unread_item", "skim_over_down_unread_item",
                 ]
 
         accel_maps = [
@@ -532,19 +532,19 @@ LifereaPS.followpage("%(rel)s")
 
             focused.emit("start-interactive-search")
 
-    def action_skim_over_up(self, action, param):
+    def action_skim_over_up_item(self, action, param):
         """Go up unread items without mark the item read"""
         self._skim_without_change_read_status("up", False)
 
-    def action_skim_over_down(self, action, param):
+    def action_skim_over_down_item(self, action, param):
         """Go down unread items without mark the item read"""
         self._skim_without_change_read_status("down", False)
 
-    def action_skim_over_up_unread(self, action, param):
+    def action_skim_over_up_unread_item(self, action, param):
         """Go up unread items without mark the item read"""
         self._skim_without_change_read_status("up", True)
 
-    def action_skim_over_down_unread(self, action, param):
+    def action_skim_over_down_unread_item(self, action, param):
         """Go down unread items without mark the item read"""
         self._skim_without_change_read_status("down", True)
 
