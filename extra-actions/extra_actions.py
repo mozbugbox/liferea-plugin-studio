@@ -333,6 +333,7 @@ class ExtraActionsPlugin (GObject.Object,
                 "webkit_go_back", "webkit_go_forward",
                 "webkit_follow_previous_page", "webkit_follow_next_page",
                 "search_focused_list",
+                "step_up_item", "step_down_item",
                 "skim_over_up_item", "skim_over_down_item",
                 "skim_over_up_unread_item", "skim_over_down_unread_item",
                 ]
@@ -532,6 +533,14 @@ LifereaPS.followpage("%(rel)s")
 
             focused.emit("start-interactive-search")
 
+    def action_step_up_item(self, action, param):
+        """Go up unread items without mark the item read"""
+        self._step_item("up")
+
+    def action_step_down_item(self, action, param):
+        """Go up unread items without mark the item read"""
+        self._step_item("down")
+
     def action_skim_over_up_item(self, action, param):
         """Go up unread items without mark the item read"""
         self._skim_without_change_read_status("up", False)
@@ -548,8 +557,7 @@ LifereaPS.followpage("%(rel)s")
         """Go down unread items without mark the item read"""
         self._skim_without_change_read_status("down", True)
 
-    def _skim_without_change_read_status(self, direct="down",
-            unread_only=False):
+    def _get_next_iter(self, direct="down"):
         tree = self.itemlist_treeview
         model = tree.props.model
         path, col = tree.get_cursor()
@@ -566,7 +574,24 @@ LifereaPS.followpage("%(rel)s")
                 miter = model.iter_next(miter)
             else:
                 miter = model.iter_previous(miter)
+        return miter
+
+    def _step_item(self, direct="down"):
+        miter = self._get_next_iter(direct)
+        if miter:
+            tree = self.itemlist_treeview
+            model = tree.props.model
+            tree.grab_focus()
+            path = model.get_path(miter)
+            tree.set_cursor(path, None, False)
+
+    def _skim_without_change_read_status(self, direct="down",
+            unread_only=False):
+        miter = self._get_next_iter(direct)
         if not miter: return
+
+        tree = self.itemlist_treeview
+        model = tree.props.model
 
         IS_STATE = 10
         ITEMSTORE_WEIGHT = 11
