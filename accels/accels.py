@@ -471,7 +471,6 @@ class EditShortCutDialog(Gtk.Dialog):
 
                 entry = Gtk.Entry()
                 entry.props.width_chars = 24
-                entry.props.max_width_chars = 32
                 entry.props.tooltip_text = "Enter Accelration Keys"
                 entry.props.expand = False
                 entry.props.overwrite_mode = True
