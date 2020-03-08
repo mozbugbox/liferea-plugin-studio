@@ -52,6 +52,7 @@ CONFIG_PROPERTY_TYPE = {
     bool: [],
     int: [],
     str: [
+        "video-player",
         "next-page-pattern",
         "prev-page-pattern",
     ],
@@ -62,70 +63,22 @@ CONFIG_SECTIONS = [MAIN_SECTION]
 
 # Default values for ConfigParser
 CONFIG_DEFAULTS = {
-    "next-page-pattern": "^(next|newer)\\b|»|>>|more",
-    "prev-page-pattern": "^(prev(ious)?|older)\\b|«|<<",
+        "video-player": "/usr/bin/mpv",
+        "next-page-pattern": "^(next|newer)\\b|»|>>|more",
+        "prev-page-pattern": "^(prev(ious)?|older)\\b|«|<<",
 }
 
-javascript_lib = """\
-(function (lp$) {
-    // lp$ is our local namespace
-    function incrementUrl(url, count) {
-        // Find the final number in a URL
-        const matches = url.match(/(.*?)(\d+)(\D*)$/)
+JS_UTILS = "utils.js"
+JS_MODULES = {}
+def import_js(module):
+    fname = module if module.endswith(".js") else module + ".js"
+    if fname not in JS_MODULES:
+        import pathlib
+        js_path = pathlib.Path(__file__).parent.joinpath(fname)
+        js_content = js_path.read_text()
+        JS_MODULES[fname] = js_content
+    return JS_MODULES[fname]
 
-        // no number in URL - nothing to do here
-        if (matches === null) {
-            return null
-        }
-
-        const [, pre, number, post] = matches
-        const newNumber = parseInt(number, 10) + count
-        let newNumberStr = String(newNumber > 0 ? newNumber : 0)
-
-        // Re-pad numbers that were zero-padded to be the same length:
-        // 0009 + 1 => 0010
-        if (number.match(/^0/)) {
-            while (newNumberStr.length < number.length) {
-                newNumberStr = "0" + newNumberStr
-            }
-        }
-
-        return pre + newNumberStr + post
-    }
-
-    lp$.urlincrement = function (count = 1) {
-        const newUrl = incrementUrl(window.location.href, count)
-
-        if (newUrl !== null) {
-            window.location.href = newUrl
-        }
-    }
-
-    lp$.mouseEvent = function ( element, type, modifierKeys = {}) {
-        let events = []
-        switch (type) {
-            case "unhover":
-                events = ["mousemove", "mouseout", "mouseleave"]
-                break
-            case "click":
-                events = ["mousedown", "mouseup", "click"]
-            case "hover":
-                events = ["mouseover", "mouseenter", "mousemove"].concat(events)
-                break
-        }
-        events.forEach(type => {
-            const event = new MouseEvent(type, {
-                bubbles: true,
-                cancelable: true,
-                view: window,
-                detail: 1, // usually the click count
-                ...modifierKeys,
-            })
-            element.dispatchEvent(event)
-        })
-    }
-})(window.LifereaPS = window.LifereaPS || {});
-"""
 def liferea_symbols():
     """Print out symbols exported by `Liferea` module"""
     gobj_attrs = set(dir(GObject.Object))
@@ -332,6 +285,7 @@ class ExtraActionsPlugin (GObject.Object,
                 "webkit_clear_cache", "webkit_open_inspector",
                 "webkit_go_back", "webkit_go_forward",
                 "webkit_follow_previous_page", "webkit_follow_next_page",
+                "webkit_play_video_in_mpv",
                 "search_focused_list",
                 "step_up_item", "step_down_item",
                 "skim_over_up_item", "skim_over_down_item",
@@ -454,6 +408,13 @@ class ExtraActionsPlugin (GObject.Object,
         """Find the link with "< previous" like pattern in page and load it"""
         self.webkit_go_following_page("prev")
 
+    def load_js_utils(self, webview):
+        if not hasattr(webview, "js_utils_uri"):
+            webview.js_utils_uri = None
+        if webview.js_utils_uri != webview.props.uri:
+            webview.run_javascript(import_js("utils.js"))
+            webview.js_utils_uri = webview.props.uri
+
     def webkit_go_following_page(self, rel="next"):
         """Find the link with "next>" like pattern in page and load it
         @rel: accept "next" | "prev"
@@ -500,7 +461,8 @@ class ExtraActionsPlugin (GObject.Object,
         // console.log(faStyle)
 
         const rel_pat = new RegExp("%(rel_pattern)s", "i")
-        let anchor = (selectLast(`a[rel~=${rel}][href], ${faStyle}`) || findRelLink(rel_pat))
+        let anchor = (selectLast(`a[rel~=${rel}][href], ${faStyle}`)
+            || findRelLink(rel_pat))
 
         if (anchor) {
             lp$.mouseEvent(anchor, "click")
@@ -514,9 +476,62 @@ LifereaPS.followpage("%(rel)s")
         """ % {"rel_pattern": rel_pattern, "rel": rel}
 
         main_view = self.main_webkit_view.props.renderwidget
-        javascript_content = javascript_lib + javascript_content
+        self.load_js_utils(main_view)
+        javascript_content = javascript_content
         # log_error(f"running javascript:\n{javascript_content}")
         main_view.run_javascript(javascript_content)
+
+    def action_webkit_play_video_in_mpv(self, action, param):
+        def finished(view, result, error):
+            import json
+            js_result = view.run_javascript_finish(result)
+            js_value = js_result.get_js_value()
+            video_urls = json.loads(js_value.to_string())
+            video_player = self.config[MAIN_SECTION][f"video-player"]
+
+            main_view = self.main_webkit_view.props.renderwidget
+            title = main_view.props.title
+            import subprocess
+            for url in video_urls:
+                cmd = [video_player]
+                if video_player.endswith(("/mpv", "\\mpv.exe")):
+                    cmd += ["--no-terminal"]
+                    cmd += [f"--title={title}"]
+                elif video_player.endswith(("/vlc", "\\vlc.exe")):
+                    cmd += ["--quiet"]
+                cmd += [url]
+                #print(" ".join(cmd))
+                subprocess.Popen(cmd, shell=False,
+                        encoding="utf8", errors="replace")
+
+        self.webkit_get_video_url(finished)
+
+    def webkit_get_video_url(self, callback, user_data=None):
+        javascript_content = """\
+(function (lp$) {
+    lp$.get_vloc = function get_vloc() {
+        const elems = lp$.getElementsBySelector("video");
+        let vloc = Array.from(elems).map(e => e.currentSrc)
+            .filter(e => !e.startsWith("blob:"))
+        if (vloc.length <= 0) {
+            vloc = Array.from(document.querySelectorAll("iframe,frame"))
+                .filter(f => f.src.includes("embed"))
+                .map(f => f.src)
+        }
+
+        if (vloc.length <= 0)
+            vloc = [document.location.href];
+        return JSON.stringify(vloc);
+    };
+})(window.LifereaPS = window.LifereaPS || {});
+LifereaPS.get_vloc();
+        """
+        main_view = self.main_webkit_view.props.renderwidget
+        self.load_js_utils(main_view)
+        javascript_content = javascript_content
+        # log_error(f"running javascript:\n{javascript_content}")
+        main_view.run_javascript(javascript_content, None, callback,
+                user_data)
 
     def action_search_focused_list(self, action, param):
         """Start interactive search on the focused treeivew

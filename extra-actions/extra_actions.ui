@@ -207,10 +207,40 @@
           </packing>
         </child>
         <child>
-          <placeholder/>
+          <object class="GtkLabel" id="label5">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="tooltip_text" translatable="yes">Path of external video play</property>
+            <property name="halign">end</property>
+            <property name="valign">center</property>
+            <property name="hexpand">False</property>
+            <property name="vexpand">False</property>
+            <property name="label" translatable="yes">_Video Player:</property>
+            <property name="use_underline">True</property>
+            <property name="mnemonic_widget">entry_video_player</property>
+            <property name="lines">1</property>
+            <property name="xalign">1</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">0</property>
+          </packing>
         </child>
         <child>
-          <placeholder/>
+          <object class="GtkEntry" id="entry_video_player">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="tooltip_text" translatable="yes">Path of external video play</property>
+            <property name="hexpand">True</property>
+            <property name="width_chars">40</property>
+            <signal name="changed" handler="entry_changed_cb" swapped="no"/>
+            <signal name="editing-done" handler="entry_editing_done_cb" swapped="no"/>
+            <signal name="focus-out-event" handler="entry_focus_out_event_cb" swapped="no"/>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="top_attach">0</property>
+          </packing>
         </child>
         <child>
           <placeholder/>
