@@ -576,7 +576,7 @@ class EditShortCutDialog(Gtk.Dialog):
             menu_item.props.label = "Shortcut " + label
             menu_item.props.use_underline = True
             menu.append(menu_item)
-            mitems[label.split()[0]] = menu_item
+            mitems[label.split()[0].replace("_", "")] = menu_item
 
         mitems["Reset"].connect("activate",
                 self._on_button_reset_shortcut_clicked, entry)
