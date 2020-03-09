@@ -290,6 +290,7 @@ class ExtraActionsPlugin (GObject.Object,
                 "step_up_item", "step_down_item",
                 "skim_over_up_item", "skim_over_down_item",
                 "skim_over_up_unread_item", "skim_over_down_unread_item",
+                "remove_items_with_duplicate_title",
                 ]
 
         accel_maps = [
@@ -571,6 +572,39 @@ LifereaPS.get_vloc();
     def action_skim_over_down_unread_item(self, action, param):
         """Go down unread items without mark the item read"""
         self._skim_without_change_read_status("down", True)
+
+    def action_remove_items_with_duplicate_title(self, action, param):
+        """Remove items in listview with duplicated title"""
+        # FIXME: this is a hack but we don't have access to ItemPrt which is
+        # not a gobject
+        IS_LABEL = 2
+
+        tree = self.itemlist_treeview
+        model = tree.props.model
+        selected_title = None
+        selected_path = None
+
+        curser0, _ = tree.get_cursor()
+        if curser0:
+            selected_title = model[curser0][IS_LABEL]
+        seen = set()
+        duplicated = []
+
+        for item in model:
+            if item[IS_LABEL] in seen:
+                duplicated.append(item.path)
+            else:
+                title = item[IS_LABEL]
+                seen.add(title)
+                if title == selected_title:
+                    selected_path = item.path
+        duplicated.reverse()
+        for path in duplicated:
+            tree.set_cursor(path, None, False)
+            self.do_action("remove-selected-item")
+
+        if selected_path:
+            tree.set_cursor(selected_path, None, False)
 
     def _get_next_iter(self, direct="down"):
         tree = self.itemlist_treeview
