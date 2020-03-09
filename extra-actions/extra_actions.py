@@ -290,7 +290,7 @@ class ExtraActionsPlugin (GObject.Object,
                 "step_up_item", "step_down_item",
                 "skim_over_up_item", "skim_over_down_item",
                 "skim_over_up_unread_item", "skim_over_down_unread_item",
-                "remove_items_with_duplicate_title",
+                "reload_item", "remove_items_with_duplicate_title",
                 ]
 
         accel_maps = [
@@ -605,6 +605,29 @@ LifereaPS.get_vloc();
 
         if selected_path:
             tree.set_cursor(selected_path, None, False)
+
+    def action_reload_item(self, action, param):
+        """Reload item into the view
+        """
+        # FIXME: Hack to reload current item into webview.
+        # Select next item and reselect the origin
+        ITEMSTORE_WEIGHT = 11
+        tree = self.itemlist_treeview
+        selection = tree.get_selection()
+        model, miter = selection.get_selected()
+        miter_next = model.iter_next(miter)
+        if not miter_next:
+            miter_next = model.iter_previous(miter)
+        if not miter_next:
+            return
+
+        weight = model.get_value(miter_next, ITEMSTORE_WEIGHT)
+        next_is_unread = weight == 700
+
+        selection.select_iter(miter_next)
+        if next_is_unread:
+            self.do_action("toggle-selected-item-read-status")
+        selection.select_iter(miter)
 
     def _get_next_iter(self, direct="down"):
         tree = self.itemlist_treeview
