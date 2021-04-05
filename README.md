@@ -15,6 +15,7 @@ Collection of liferea plugins
   shorcut keys using `Accels` plugin.
 * Search Better: Tweak the search on feedlist and itemlist treeview.
 * Search PinYin: Use PinYin to search in feedlist and itemlist treeview.
+* MobileMode: Helper plugin for using Liferea on mobile phones.
 
 # Dependency
 * Liferea: version >= 1.12.3
