@@ -163,6 +163,7 @@ class MobileModePlugin (GObject.Object,
     def __init__(self):
         GObject.Object.__init__(self)
         self.valid_region = 0.3  # valid region for drag start
+        self.gesture_threshold = 10
 
     def do_activate(self):
         """Override Peas Plugin entry point"""
@@ -226,6 +227,12 @@ class MobileModePlugin (GObject.Object,
 
     def on_main_win_drag_end(self, gesture, offset_x, offset_y, *udata):
         """Handler for drag-end event."""
+
+        # too close for a drag
+        if (abs(offset_x) < self.gesture_threshold and
+                abs(offset_y) < self.gesture_threshold):
+            return
+
         res, start_x, start_y = gesture.get_start_point()
         main_height = self.main_win.get_allocated_height()
         # print(main_height, start_y, main_height - start_y, main_height * self.valid_region)
