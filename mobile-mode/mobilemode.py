@@ -242,7 +242,8 @@ class MobileModePlugin (GObject.Object,
         if abs(offset_x) < abs(offset_y):
             # vertical drag
             if offset_y < 0:  # up
-                pass
+                if self.view_mode == ViewMode.ITEM:
+                    self.do_action("next-unread-item")
             else:
                 pass
         elif offset_x > 0:
@@ -309,6 +310,33 @@ class MobileModePlugin (GObject.Object,
             html_in_tabs = [x.get_widget() for x in box_in_tabs]
             views.extend(html_in_tabs)
         return views
+
+    def do_action(self, action_name, values=None):
+        """
+        values: action parameters as a single value: 1, "some text", (1, True)
+        """
+        win = self._shell.get_window()
+        gapp = win.props.application
+        for action_map_group in [win, gapp]:
+            action = action_map_group.lookup_action(action_name)
+            if action is None:
+                action = action_map_group.lookup_action(action_name.replace("_", "-"))
+
+            if action is not None:
+                break
+        if action is None:
+            log_error(f"Unknown action {action_name}")
+            return
+        # log_error("doing", action_name)
+        vtype = action.get_parameter_type()
+        if (vtype is None) != (values is None):
+            log_error(f"Action {action_name} param type don't confirm values")
+            return
+
+        param = None
+        if vtype:
+            param = GLib.Variant(vtype.dup_string(), values)
+        action.activate(param)
 
     def load_actions(self):
         """Setup actions and add default shortcuts"""
