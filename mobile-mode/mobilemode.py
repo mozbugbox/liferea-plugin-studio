@@ -148,6 +148,7 @@ def add_action_entries(gaction_map, entries, *user_data):
             log_error(e)
 
 class ViewMode(enum.Enum):
+    UNKNOWN = 0
     FEED_LIST = 1
     ITEM_LIST = 2
     ITEM = 3
@@ -210,6 +211,8 @@ class MobileModePlugin (GObject.Object,
             self.show_item_list()
         elif self.view_mode == ViewMode.ITEM_LIST:
             self.show_feed_list()
+        else:
+            self.show_feed_list()
 
     def show_right(self):
         """Show the view to the right of current view"""
@@ -217,6 +220,8 @@ class MobileModePlugin (GObject.Object,
             self.show_item_list()
         elif self.view_mode == ViewMode.ITEM_LIST:
             self.show_item()
+        else:
+            self.show_item_list()
 
     def reset_panes(self):
         """Reset the panes to a proper default position"""
@@ -259,13 +264,14 @@ class MobileModePlugin (GObject.Object,
 
     @property
     def view_mode(self):
-        mode = ViewMode.FEED_LIST
         if self.left_pane.props.position == self.normal_view_pane.props.position == 0:
             mode = ViewMode.ITEM
         elif self.left_pane.props.position == 0:
             mode = ViewMode.ITEM_LIST
         elif self.normal_view_pane == 0:
             mode = ViewMode.FEED_LIST
+        else:
+            mode = ViewMode.UNKNOWN
         return mode
 
     @property
