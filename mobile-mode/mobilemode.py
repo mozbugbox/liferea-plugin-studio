@@ -169,7 +169,7 @@ class MobileModePlugin (GObject.Object,
 
         self.swipe_gesture = Gtk.GestureSwipe.new(self.main_win)
         self.swipe_gesture.props.propagation_phase = Gtk.PropagationPhase.CAPTURE
-        self.swipe_gesture.connect("swipe", self.on_main_win_swipe)
+        self.swipe_cid = self.swipe_gesture.connect("swipe", self.on_main_win_swipe)
 
         self.load_actions()
 
@@ -184,11 +184,17 @@ class MobileModePlugin (GObject.Object,
         pane_height = self.normal_view_pane.get_allocated_height()
         self.normal_view_pane.props.position = pane_height
 
-
     def show_item(self):
         """Show the item view widget"""
         self.left_pane.props.position = 0
         self.normal_view_pane.props.position = 0
+
+    def reset_panes(self):
+        """Reset the panes to a proper default position"""
+        pane_width = self.left_pane.get_allocated_width()
+        self.left_pane.props.position = pane_width // 3
+        pane_height = self.normal_view_pane.get_allocated_height()
+        self.normal_view_pane.props.position = pane_height * 2 // 5
 
     def on_main_win_swipe(self, gesture, vx, vy, *udata):
         """Handler for swipe event."""
@@ -206,7 +212,9 @@ class MobileModePlugin (GObject.Object,
 
     def do_deactivate(self):
         """Peas Plugin exit point"""
-        pass
+        self.swipe_gesture.disconnect(self.swipe_cid)
+        self.swipe_cid = -1
+        self.reset_panes()
 
     @property
     def main_win(self):
