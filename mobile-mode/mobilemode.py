@@ -169,7 +169,7 @@ class MobileModePlugin (GObject.Object,
 
     def __init__(self):
         GObject.Object.__init__(self)
-        self.valid_region = 0.3  # valid region for drag start
+        self.gesture_valid_region = 0.3  # valid region for drag start
         self.gesture_threshold = 10
 
     def do_activate(self):
@@ -247,10 +247,13 @@ class MobileModePlugin (GObject.Object,
         res, start_x, start_y = gesture.get_start_point()
         main_height = self.main_win.get_allocated_height()
         # print(main_height, start_y, main_height - start_y, main_height * self.valid_region)
-        if (main_height - start_y) > int(main_height * self.valid_region):
+        if (main_height - start_y) > int(main_height * self.gesture_valid_region):
             return
 
-        tan = abs(offset_y / offset_x)
+        if offset_x != 0:
+            tan = abs(offset_y / offset_x)
+        else:
+            tan = 57  # 89deg
         if tan > TAN_VERT:  # vertical
             if offset_y < 0:
                 # vertical up drag
