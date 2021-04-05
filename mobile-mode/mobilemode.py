@@ -239,9 +239,9 @@ class MobileModePlugin (GObject.Object,
             else:
                 pass
         elif offset_x > 0:
-            self.show_right()
-        else:
             self.show_left()
+        else:
+            self.show_right()
 
     def do_deactivate(self):
         """Peas Plugin exit point"""
