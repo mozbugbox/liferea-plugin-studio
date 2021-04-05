@@ -23,7 +23,7 @@
 """
 A mode for help using Liferea on mobile phone:
     * Single pane mode: Show only one pane at a time
-    * swipe from border to change window among channel/itemlist/item
+    * swipe from lower screen to change window among feedlist/itemlist/item
 """
 
 """
@@ -156,6 +156,7 @@ class MobileModePlugin (GObject.Object,
 
     def __init__(self):
         GObject.Object.__init__(self)
+        self.valid_region = 0.3  # valid region for drag start
 
     def do_activate(self):
         """Override Peas Plugin entry point"""
@@ -167,27 +168,34 @@ class MobileModePlugin (GObject.Object,
         self.left_pane = left_pane
         self.normal_view_pane = normal_view_pane
 
-        self.swipe_gesture = Gtk.GestureSwipe.new(self.main_win)
-        self.swipe_gesture.props.propagation_phase = Gtk.PropagationPhase.CAPTURE
-        self.swipe_cid = self.swipe_gesture.connect("swipe", self.on_main_win_swipe)
+        self.drag_gesture = Gtk.GestureDrag.new(self.main_win)
+        self.drag_gesture.props.propagation_phase = Gtk.PropagationPhase.CAPTURE
+        self.drag_end_cid = self.drag_gesture.connect("drag-end", self.on_main_win_drag_end)
 
         self.load_actions()
 
     def show_feed_list(self):
         """Show the feedlist widget"""
         pane_width = self.left_pane.get_allocated_width()
-        self.left_pane.props.position = pane_width
+        if self.left_pane.props.position != pane_width:
+            self.left_pane.props.position = pane_width
 
     def show_item_list(self):
         """Show the itemlist widget"""
-        self.left_pane.props.position = 0
+        if self.left_pane.props.position != 0:
+            self.left_pane.props.position = 0
+
         pane_height = self.normal_view_pane.get_allocated_height()
-        self.normal_view_pane.props.position = pane_height
+        if self.normal_view_pane.props.position != pane_height:
+            self.normal_view_pane.props.position = pane_height
 
     def show_item(self):
         """Show the item view widget"""
-        self.left_pane.props.position = 0
-        self.normal_view_pane.props.position = 0
+        if self.left_pane.props.position != 0:
+            self.left_pane.props.position = 0
+
+        if self.normal_view_pane.props.position != 0:
+            self.normal_view_pane.props.position = 0
 
     def reset_panes(self):
         """Reset the panes to a proper default position"""
@@ -196,24 +204,29 @@ class MobileModePlugin (GObject.Object,
         pane_height = self.normal_view_pane.get_allocated_height()
         self.normal_view_pane.props.position = pane_height * 2 // 5
 
-    def on_main_win_swipe(self, gesture, vx, vy, *udata):
-        """Handler for swipe event."""
-        # print(vx, vy)
-        if abs(vx) < abs(vy):
-            # vertical swipe
-            if vy < 0:  # up
+    def on_main_win_drag_end(self, gesture, offset_x, offset_y, *udata):
+        """Handler for drag-end event."""
+        res, start_x, start_y = gesture.get_start_point()
+        main_height = self.main_win.get_allocated_height()
+        # print(main_height, start_y, main_height - start_y, main_height * self.valid_region)
+        if (main_height - start_y) > int(main_height * self.valid_region):
+            return
+
+        if abs(offset_x) < abs(offset_y):
+            # vertical drag
+            if offset_y < 0:  # up
                 self.show_item()
             else:
                 pass
-        elif vx > 0:
+        elif offset_x > 0:
             self.show_feed_list()
         else:
             self.show_item_list()
 
     def do_deactivate(self):
         """Peas Plugin exit point"""
-        self.swipe_gesture.disconnect(self.swipe_cid)
-        self.swipe_cid = -1
+        self.drag_gesture.disconnect(self.drag_end_cid)
+        self.drag_end_cid = -1
         self.reset_panes()
 
     @property
