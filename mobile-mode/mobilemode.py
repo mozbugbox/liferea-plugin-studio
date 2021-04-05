@@ -38,6 +38,7 @@ import os
 import io
 import sys
 import enum
+import math
 import gi
 
 gi.require_version('Gtk', '3.0')
@@ -153,6 +154,11 @@ class ViewMode(enum.Enum):
     ITEM_LIST = 2
     ITEM = 3
 
+
+HORI_THESHOLD = math.pi / 9  # 20deg
+TAN_HORI = math.tan(HORI_THESHOLD)  # tangent horizontal
+TAN_VERT = 1 / TAN_HORI  # tangent for vertical
+
 class MobileModePlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
     __gtype_name__ = "MobileModePlugin"
@@ -244,17 +250,24 @@ class MobileModePlugin (GObject.Object,
         if (main_height - start_y) > int(main_height * self.valid_region):
             return
 
-        if abs(offset_x) < abs(offset_y):
-            # vertical drag
-            if offset_y < 0:  # up
+        tan = abs(offset_y / offset_x)
+        if tan > TAN_VERT:  # vertical
+            if offset_y < 0:
+                # vertical up drag
                 if self.view_mode == ViewMode.ITEM:
                     self.do_action("next-unread-item")
+                else:
+                    pass
+        elif tan < TAN_HORI:  # horizontal
+            if offset_x > 0:
+                self.show_left()
             else:
-                pass
-        elif offset_x > 0:
-            self.show_left()
-        else:
-            self.show_right()
+                self.show_right()
+        elif offset_y < 0:  # angle up
+            if offset_x < 0:
+                self._step_item("up")
+            else:
+                self._step_item("down")
 
     def do_deactivate(self):
         """Peas Plugin exit point"""
@@ -283,6 +296,12 @@ class MobileModePlugin (GObject.Object,
     def gapp(self):
         app = self.main_win.get_application()
         return app
+
+    @property
+    def itemlist_treeview(self):
+        itemlist_view = self._shell.props.item_view.props.item_list_view
+        tview = itemlist_view.get_widget().get_child()
+        return tview
 
     @property
     def main_webkit_view(self):
@@ -381,3 +400,31 @@ class MobileModePlugin (GObject.Object,
     def action_mobile_modes_show_item(self, action, param):
         """action to show item in mobile mode"""
         self.show_feed_list()
+
+    def _get_next_iter(self, direct="down"):
+        tree = self.itemlist_treeview
+        model = tree.props.model
+        path, col = tree.get_cursor()
+        if path is None:
+            if direct == "down":
+                miter = model.get_iter_first()
+            else:
+                num_kids = model.iter_n_children(None)
+                miter = model.iter_nth_child(None, num_kids - 1)
+        else:
+            miter = model.get_iter(path)
+            if not miter: return
+            if direct == "down":
+                miter = model.iter_next(miter)
+            else:
+                miter = model.iter_previous(miter)
+        return miter
+
+    def _step_item(self, direct="down"):
+        miter = self._get_next_iter(direct)
+        if miter:
+            tree = self.itemlist_treeview
+            model = tree.props.model
+            tree.grab_focus()
+            path = model.get_path(miter)
+            tree.set_cursor(path, None, False)
