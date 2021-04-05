@@ -37,6 +37,7 @@ Plugin dev help:
 import os
 import io
 import sys
+import enum
 import gi
 
 gi.require_version('Gtk', '3.0')
@@ -146,6 +147,11 @@ def add_action_entries(gaction_map, entries, *user_data):
         except Exception as e:
             log_error(e)
 
+class ViewMode(enum.Enum):
+    FEED_LIST = 1
+    ITEM_LIST = 2
+    ITEM = 3
+
 class MobileModePlugin (GObject.Object,
         Liferea.ShellActivatable, PeasGtk.Configurable):
     __gtype_name__ = "MobileModePlugin"
@@ -197,6 +203,20 @@ class MobileModePlugin (GObject.Object,
         if self.normal_view_pane.props.position != 0:
             self.normal_view_pane.props.position = 0
 
+    def show_left(self):
+        """Show the view to the left of current view"""
+        if self.view_mode == ViewMode.ITEM:
+            self.show_item_list()
+        elif self.view_mode == ViewMode.ITEM_LIST:
+            self.show_feed_list()
+
+    def show_right(self):
+        """Show the view to the right of current view"""
+        if self.view_mode == ViewMode.FEED_LIST:
+            self.show_item_list()
+        elif self.view_mode == ViewMode.ITEM_LIST:
+            self.show_item()
+
     def reset_panes(self):
         """Reset the panes to a proper default position"""
         pane_width = self.left_pane.get_allocated_width()
@@ -215,19 +235,30 @@ class MobileModePlugin (GObject.Object,
         if abs(offset_x) < abs(offset_y):
             # vertical drag
             if offset_y < 0:  # up
-                self.show_item()
+                pass
             else:
                 pass
         elif offset_x > 0:
-            self.show_feed_list()
+            self.show_right()
         else:
-            self.show_item_list()
+            self.show_left()
 
     def do_deactivate(self):
         """Peas Plugin exit point"""
         self.drag_gesture.disconnect(self.drag_end_cid)
         self.drag_end_cid = -1
         self.reset_panes()
+
+    @property
+    def view_mode(self):
+        mode = ViewMode.FEED_LIST
+        if self.left_pane.props.position == self.normal_view_pane.props.position == 0:
+            mode = ViewMode.ITEM
+        elif self.left_pane.props.position == 0:
+            mode = ViewMode.ITEM_LIST
+        elif self.normal_view_pane == 0:
+            mode = ViewMode.FEED_LIST
+        return mode
 
     @property
     def main_win(self):
