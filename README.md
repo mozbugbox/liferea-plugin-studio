@@ -26,7 +26,7 @@ Collection of liferea plugins
 # Installation
 Each plugin is kept in its own directory.
 
-To install a plugin, copy the desired plugin directory into
+To install a plugin, copy/symlink the desired plugin directory into
 `~/.local/share/liferea/plugins/`. Then turn on the plugin in Liferea throught
 the menu `Tools->Preferences->Plugins`.
 
@@ -39,13 +39,13 @@ cd liferea-plugin-studio-master
 cp -R webkitsetting ~/.local/share/liferea/plugins/
 ```
 
-Or use `git`
+Or use `git` with symbolic link:
 
 ```sh
 mkdir src
 cd src
 git clone https://github.com/mozbugbox/liferea-plugin-studio/
 cd liferea-plugin-studio
-cp -R webkitsetting ~/.local/share/liferea/plugins/
+ln -s `realpath webkitsetting` ~/.local/share/liferea/plugins/
 ```
 
