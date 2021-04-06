@@ -399,6 +399,8 @@ class MobileModePlugin (GObject.Object,
                 "mobile_modes_show_feed_list",
                 "mobile_modes_show_item_list",
                 "mobile_modes_show_item",
+                "mobile_modes_show_left",
+                "mobile_modes_show_right",
         ]
 
         accel_maps = [
@@ -429,6 +431,14 @@ class MobileModePlugin (GObject.Object,
     def action_mobile_modes_show_item(self, action, param):
         """action to show item in mobile mode"""
         self.show_feed_list()
+
+    def action_mobile_modes_show_left(self, action, param):
+        """action to show left view in mobile mode"""
+        self.show_left()
+
+    def action_mobile_modes_show_right(self, action, param):
+        """action to show right view in mobile mode"""
+        self.show_right()
 
     def _get_next_iter(self, direct="down"):
         tree = self.itemlist_treeview
