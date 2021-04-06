@@ -186,7 +186,39 @@ class MobileModePlugin (GObject.Object,
         self.drag_gesture.props.propagation_phase = Gtk.PropagationPhase.CAPTURE
         self.drag_end_cid = self.drag_gesture.connect("drag-end", self.on_main_win_drag_end)
 
+        self.build_compact_menu()
         self.load_actions()
+
+    def do_deactivate(self):
+        """Peas Plugin exit point"""
+        self.drag_gesture.disconnect(self.drag_end_cid)
+        self.drag_end_cid = -1
+        self.reset_panes()
+
+        builder = self.shell.get_property("builder")
+        status_bar = builder.get_object("statusbar")
+        Gtk.Container.remove(status_bar, self.menu_dropdown)
+        self.main_win.set_show_menubar(True)
+
+    def build_compact_menu(self):
+        """Hide main menubar while create a hamburg button on status bar
+        Borrowed from the Header Bar plugin
+
+        """
+        # hamburg button
+        button = Gtk.MenuButton()
+        icon = Gio.ThemedIcon(name="open-menu-symbolic")
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        builder = self.shell.get_property("builder")
+        button.set_menu_model(builder.get_object("menubar"))
+        button.add(image)
+        button.show_all()
+
+        self.main_win.set_show_menubar(False)
+        status_bar = builder.get_object("statusbar")
+        status_bar.pack_end(button, False, False, 0)
+
+        self.menu_dropdown = button
 
     def show_feed_list(self):
         """Show the feedlist widget"""
@@ -271,12 +303,6 @@ class MobileModePlugin (GObject.Object,
                 self._step_item("up")
             else:
                 self._step_item("down")
-
-    def do_deactivate(self):
-        """Peas Plugin exit point"""
-        self.drag_gesture.disconnect(self.drag_end_cid)
-        self.drag_end_cid = -1
-        self.reset_panes()
 
     @property
     def view_mode(self):
