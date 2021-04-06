@@ -396,11 +396,11 @@ class MobileModePlugin (GObject.Object,
         """Setup actions and add default shortcuts"""
         window = self.main_win
         simple_action_names = [
-                "mobile_modes_show_feed_list",
-                "mobile_modes_show_item_list",
-                "mobile_modes_show_item",
-                "mobile_modes_show_left",
-                "mobile_modes_show_right",
+                "mobile_mode_show_feed_list",
+                "mobile_mode_show_item_list",
+                "mobile_mode_show_item",
+                "mobile_mode_show_left",
+                "mobile_mode_show_right",
         ]
 
         accel_maps = [
@@ -420,23 +420,23 @@ class MobileModePlugin (GObject.Object,
             except Exception as e:
                 log_error(e)
 
-    def action_mobile_modes_show_feed_list(self, action, param):
+    def action_mobile_mode_show_feed_list(self, action, param):
         """action to show feed list in mobile mode"""
         self.show_feed_list()
 
-    def action_mobile_modes_show_item_list(self, action, param):
+    def action_mobile_mode_show_item_list(self, action, param):
         """action to show item list in mobile mode"""
         self.show_feed_list()
 
-    def action_mobile_modes_show_item(self, action, param):
+    def action_mobile_mode_show_item(self, action, param):
         """action to show item in mobile mode"""
         self.show_feed_list()
 
-    def action_mobile_modes_show_left(self, action, param):
+    def action_mobile_mode_show_left(self, action, param):
         """action to show left view in mobile mode"""
         self.show_left()
 
-    def action_mobile_modes_show_right(self, action, param):
+    def action_mobile_mode_show_right(self, action, param):
         """action to show right view in mobile mode"""
         self.show_right()
 
