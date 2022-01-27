@@ -152,9 +152,9 @@
     return ret.slice();
   };
 
-  // Add shade elements of tagname
-  LifereaShades.shade_tag = function(win, tagname, threshold, new_lit) {
-    var doc = win.document;
+  // Add shade elements of root for tagname
+  LifereaShades.shade_tag = function(root, tagname, threshold, new_lit) {
+    var win = root.defaultView || root.ownerDocument.defaultView;
     var new_color = null;
     var new_rgb = null;
     var new_bg_lit = null;
@@ -169,7 +169,7 @@
       new_color = new_lit;
     }
 
-    var elms = doc.getElementsByTagName(tagname);
+    var elms = root.getElementsByTagName(tagname);
     for (var i = 0; i < elms.length; i++) {
       var elm = elms[i];
       var styleobj = win.getComputedStyle(elm, null);
@@ -254,7 +254,7 @@
     var tags = LifereaShades.SHADE_TAGS;
     for (var i = 0; i < tags.length; i++) {
       var tag = tags[i];
-      LifereaShades.shade_tag(win, tag, threshold, new_lit);
+      LifereaShades.shade_tag(win.document, tag, threshold, new_lit);
     }
 
     var framelist = win.frames;
@@ -270,15 +270,44 @@
 
   LifereaShades.do_shade = function(threshold, new_lit) {
     LifereaShades.shade_window(window, threshold, new_lit);
+    LifereaShades.watch_mutation(threshold, new_lit);
   };
 
   // Set background color if it is not set
   LifereaShades.set_background = function(foreground_color, background_color) {
+    if (!window.document.body.style) // Not proper load yet?
+      return;
     var bgcolor = window.document.body.style.backgroundColor;
     if (!bgcolor) {
       window.document.body.style.color = foreground_color;
       window.document.body.style.backgroundColor = background_color;
     }
+  };
+
+  // do shade on node added after page was loaded.
+  LifereaShades.watch_mutation = function(threshold, new_lit) {
+    function callback_mutation(mutationList, observer) {
+      var tags = LifereaShades.SHADE_TAGS;
+      for (var mutation of mutationList) {
+        if (mutation.type === 'childList') {
+          for (var node of mutation.addedNodes) {
+            for (var tag of tags) {
+              LifereaShades.shade_tag(node, tag, threshold, new_lit);
+            }
+          }
+        }
+      }
+    }
+
+    const observerOptions = {
+      childList: true,
+      subtree: true
+    };
+    const observer = new MutationObserver(callback_mutation);
+    observer.observe(document, observerOptions);
+
+    // Hold a reference to the observer from gc
+    LifereaShades.observer = observer;
   };
 
 }(window.LifereaShades = window.LifereaShades || {}));

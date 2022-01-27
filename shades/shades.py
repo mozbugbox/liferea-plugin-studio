@@ -48,9 +48,9 @@ UI_FILE_PATH = os.path.join(os.path.dirname(__file__), "shades.ui")
 
 # config settings sort by type
 CONFIG_TYPES = {
-        bool:  ["use-color",],
+        bool: ["use-color",],
         float: ["threshold", "lightness"],
-        str:   [],
+        str: [],
 
         "colorbutton": ["color", "text-color"],
         }
@@ -170,7 +170,7 @@ class InspectorWindow:
 
     def detach_webview(self):
         """On unhook webview, remove signal connections"""
-        inspector = self.inspector
+        #inspector = self.inspector
         wk_view = self.wk_view
 
         #inspector.disconnect_by_func(self.on_inspect_web_view)
@@ -260,7 +260,7 @@ class ShadesPlugin (GObject.Object,
         bt_notebook = browser_tabs.props.notebook
         return bt_notebook
 
-    def do_activate (self):
+    def do_activate(self):
         """Override Peas Plugin entry point"""
         if not hasattr(self, "config"):
             ShadesPlugin.config = ConfigManager()
@@ -336,7 +336,7 @@ class ShadesPlugin (GObject.Object,
         call_content = """
             // webkit default to solid white!
             LifereaShades.set_background({}, {});
-            LifereaShades.shade_window(window, {}, {});
+            LifereaShades.do_shade({}, {});
             """.format(text_color, bgcolor, threshold, color)
         #print(threshold, color)
         wk_view.run_javascript(call_content)
