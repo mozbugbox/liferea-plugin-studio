@@ -51,58 +51,67 @@ def shortcut_xml_gen(shortcut_entries):
     content = content.decode("UTF-8")
     return content
 
+def objnode(adict):
+    """Create a bare etree node from a shortcut widget dict"""
+    prefix = "GtkShortcuts"
+    if not adict["klass"].startswith(prefix):
+        adict["klass"] = prefix + adict["klass"]
+    if "attrib" not in adict:
+        adict["attrib"] = {}
+    elm = etree.Element("object", attrib=adict["attrib"])
+    elm.attrib["class"] = adict["klass"]
+    return elm
+
+def propnode(name, value):
+    """create a etree node of property from the given name and value"""
+    elm = etree.Element("property", attrib={"name": name})
+    if name == "title":
+        elm.attrib["translatable"] = "yes"
+    elm.text = str(value)
+    return elm
+
+def append_props(elm, item):
+    """add propertie nodes to a parent etree element"""
+    if "properties" in item:
+        prop_elms = [propnode(x, y) for x, y in item["properties"].items()]
+        for p_elm in prop_elms:
+            elm.append(p_elm)
+
+def split_long_childs(childs):
+    """Split child which has long list of sub-child into chunks"""
+    new_childs = []
+    for group in childs:
+        if len(group["childs"]) <= GROUP_MAX:
+            new_childs.append(group)
+        else:
+            items = group["childs"]
+            chunks = [items[x:x+GROUP_MAX] for x in range(0, len(items), GROUP_MAX)]
+            group["childs"] = None  # avoid deepcopy
+            for i, ch in enumerate(chunks):
+                sub_group = copy.deepcopy(group)
+                sub_group["childs"] = ch
+                new_childs.append(sub_group)
+    return new_childs
+
+def do_object_tree(entry):
+    elm = objnode(entry)
+    append_props(elm, entry)
+
+    if "childs" in entry:
+        childs = entry["childs"]
+
+        if entry["klass"] == "GtkShortcutsSection":  # split long group into chunks
+            childs = split_long_childs(childs)
+            entry["childs"] = childs
+
+        for kid in childs:
+            ke = etree.Element("child")
+            elm.append(ke)
+            sub_elm = do_object_tree(kid)
+            ke.append(sub_elm)
+    return elm
+
 def create_object_tree(base_entry):
-    def objnode(adict):
-        prefix = "GtkShortcuts"
-        if not adict["klass"].startswith(prefix):
-            adict["klass"] = prefix + adict["klass"]
-        if "attrib" not in adict:
-            adict["attrib"] = {}
-        aobj = etree.Element("object", attrib=adict["attrib"])
-        aobj.attrib["class"] = adict["klass"]
-        return aobj
-
-    def propnode(name, value):
-        aobj = etree.Element("property", attrib={"name": name})
-        if name == "title":
-            aobj.attrib["translatable"] = "yes"
-        aobj.text = str(value)
-        return aobj
-
-    def append_props(parent, item):
-        if "properties" in item:
-            props = [propnode(x, y) for x, y in item["properties"].items()]
-            [parent.append(x) for x in props]
-
-    def do_object_tree(entry):
-        eroot = objnode(entry)
-        append_props(eroot, entry)
-
-        if "childs" in entry:
-            childs = entry["childs"]
-
-            if entry["klass"] == "GtkShortcutsSection":  # split long group into chunks
-                new_childs = []
-                for group in childs:
-                    if len(group["childs"]) <= GROUP_MAX:
-                        new_childs.append(group)
-                    else:
-                        items = group["childs"]
-                        chunks = [items[x:x+GROUP_MAX] for x in range(0, len(items), GROUP_MAX)]
-                        group["childs"] = None  # avoid deepcopy
-                        for i, ch in enumerate(chunks):
-                            sub_group = copy.deepcopy(group)
-                            sub_group["childs"] = ch
-                            new_childs.append(sub_group)
-                entry["childs"] = new_childs
-                childs = new_childs
-
-            for kid in childs:
-                ke = etree.Element("child")
-                eroot.append(ke)
-                subroot = do_object_tree(kid)
-                ke.append(subroot)
-        return eroot
     return do_object_tree(base_entry)
 
 def shortcut_entry(title, accel=None, gesture=None, **kwargs):
