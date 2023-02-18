@@ -37,9 +37,11 @@ import os
 import io
 import logging as log
 
-NATIVE=sys.getfilesystemencoding()
-
+import copy
 from lxml import etree
+
+NATIVE = sys.getfilesystemencoding()
+GROUP_MAX = 15
 
 def shortcut_xml_gen(shortcut_entries):
     root = etree.Element("interface")
@@ -55,13 +57,13 @@ def create_object_tree(base_entry):
         if not adict["klass"].startswith(prefix):
             adict["klass"] = prefix + adict["klass"]
         if "attrib" not in adict:
-            adict["attrib"]= {}
-        aobj = etree.Element ("object", attrib=adict["attrib"])
+            adict["attrib"] = {}
+        aobj = etree.Element("object", attrib=adict["attrib"])
         aobj.attrib["class"] = adict["klass"]
         return aobj
 
     def propnode(name, value):
-        aobj = etree.Element ("property", attrib={"name": name})
+        aobj = etree.Element("property", attrib={"name": name})
         if name == "title":
             aobj.attrib["translatable"] = "yes"
         aobj.text = str(value)
@@ -75,8 +77,27 @@ def create_object_tree(base_entry):
     def do_object_tree(entry):
         eroot = objnode(entry)
         append_props(eroot, entry)
+
         if "childs" in entry:
-            for kid in entry["childs"]:
+            childs = entry["childs"]
+
+            if entry["klass"] == "GtkShortcutsSection":  # split long group into chunks
+                new_childs = []
+                for group in childs:
+                    if len(group["childs"]) <= GROUP_MAX:
+                        new_childs.append(group)
+                    else:
+                        items = group["childs"]
+                        chunks = [items[x:x+GROUP_MAX] for x in range(0, len(items), GROUP_MAX)]
+                        group["childs"] = None  # avoid deepcopy
+                        for i, ch in enumerate(chunks):
+                            sub_group = copy.deepcopy(group)
+                            sub_group["childs"] = ch
+                            new_childs.append(sub_group)
+                entry["childs"] = new_childs
+                childs = new_childs
+
+            for kid in childs:
                 ke = etree.Element("child")
                 eroot.append(ke)
                 subroot = do_object_tree(kid)
@@ -85,7 +106,7 @@ def create_object_tree(base_entry):
     return do_object_tree(base_entry)
 
 def shortcut_entry(title, accel=None, gesture=None, **kwargs):
-    props = { "title": title, "visible": 1, }
+    props = {"title": title, "visible": 1}
     if accel:
         props["accelerator"] = accel
     if gesture:
@@ -99,7 +120,7 @@ def shortcut_entry(title, accel=None, gesture=None, **kwargs):
 
 def group_entry(title, shortcuts, **kwargs):
     entry = {
-            "klass":"Group",
+            "klass": "Group",
             "properties": {
                 "visible": 1,
                 "title": title,
@@ -137,7 +158,7 @@ def main():
         import codecs; stdio = ["stdin", "stdout", "stderr"]
         for x in stdio:
             obj = getattr(sys, x)
-            if not obj.encoding: setattr(sys,  x, codecs.getwriter(enc)(obj))
+            if not obj.encoding: setattr(sys, x, codecs.getwriter(enc)(obj))
     set_stdio_encoding()
 
     log_level = log.INFO
