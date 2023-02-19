@@ -3,7 +3,7 @@
 #
 # Use better treeview search function for Liferea feedlist and itemlist
 #
-# Copyright (C) 2014-2020 Mozbugbox <mozbugbox@yahoo.com.au>
+# Copyright (C) 2014-2023 Mozbugbox <mozbugbox@yahoo.com.au>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
