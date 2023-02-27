@@ -148,9 +148,9 @@ class TextItemStatePlugin (GObject.Object,
         for column in tree.get_columns():
             for cell in column.get_cells():
                 if isinstance(cell, Gtk.CellRendererPixbuf):
-                    # don't know how to get attribute from column
-                    # luckily liferea set the sort column
-                    if column.props.sort_column_id == is_columns.IS_STATE:
+                    cell_area = column.props.cell_area
+                    gicon_col = cell_area.attribute_get_column(cell, "gicon")
+                    if gicon_col == is_columns.IS_STATEICON:
                         state_column = column
                         break
             if state_column is not None:
