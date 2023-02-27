@@ -118,9 +118,10 @@ class TextItemStatePlugin (GObject.Object,
             return
 
         for cell in state_column.get_cells():
+            if isinstance(cell, Gtk.CellRendererPixbuf):
+                cell.props.visible = True
             if isinstance(cell, Gtk.CellRendererText):
                 state_column.props.cell_area.remove(cell)
-                break
 
     def do_action(self, action_name, param):
         win = self._shell.get_window()
@@ -166,13 +167,15 @@ class TextItemStatePlugin (GObject.Object,
         if not state_column:
             return
         self.state_column = state_column
-        if len(state_column.get_cells()) < 2:
+        cells = state_column.get_cells()
+        if len(cells) < 2:
             renderer = Gtk.CellRendererText()
             state_column.pack_end(renderer, False)
             state_column.add_attribute(renderer, "text", IS_STATE_TEXT)
 
-            # Flashing 2much when flagged articles at the bottom of itemlist
-            # state_column.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
+            for cell in cells:
+                if isinstance(cell, Gtk.CellRendererPixbuf):
+                    cell.props.visible = False
 
     def setup_itemlist_model(self):
         """Extend itemlist store with a IS_STATE_TEXT column"""
